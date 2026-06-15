@@ -1223,38 +1223,50 @@ function resetNorth(){if(useMapLibre&&mlMap)mlMap.resetNorth();else if(lfMap)lfM
 // Compass: rotate the needle to show where geographic north is as the map turns.
 function updateCompass(){const n=document.getElementById('compass-needle');if(!n||!useMapLibre||!mlMap)return;n.style.transform=`rotate(${-mlMap.getBearing()}deg)`;}
 // Geolocation — drops a single clickable blue pin at your location and recenters.
-let myLocMarker=null, lastGeo=null, geoAsked=false;
-function bluePinSVG(){return`<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg"><path d="M15 1C8 1 3 6 3 13c0 9 12 25 12 25S27 22 27 13C27 6 22 1 15 1z" fill="#2563eb" stroke="#fff" stroke-width="2.5"/><circle cx="15" cy="13" r="4.5" fill="#fff"/></svg>`;}
-// Place the pin + zoom in quickly. fast=true uses a snappier fly for the on-open jump.
-function placeMyLoc(lat,lon,fast){
-  const popHTML=`<div class="pp"><div class="ppn">📍 My location</div><div class="pps">${lat.toFixed(5)}, ${lon.toFixed(5)}</div></div>`;
+let myLocMarker=null, lastGeo=null, geoAsked=false, geoWatchId=null;
+// Circular "you are here" dot: soft outer halo + solid blue core with white ring.
+function blueDotSVG(){return`<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#2563eb" fill-opacity="0.18"/><circle cx="12" cy="12" r="6.5" fill="#2563eb" stroke="#fff" stroke-width="3"/></svg>`;}
+// Place or move the dot. recenter=true flies the camera to it (open + button); live updates pass false so the
+// camera holds still and you watch the dot slide across the map as you move.
+function placeMyLoc(lat,lon,fast,recenter){
+  if(recenter===undefined)recenter=true;
+  const onClick=()=>{const la=lastGeo?lastGeo.lat:lat,lo=lastGeo?lastGeo.lon:lon;showPopup(la,lo,`<div class="pp"><div class="ppn">📍 My location</div><div class="pps">${la.toFixed(5)}, ${lo.toFixed(5)}</div></div>`);};
   if(useMapLibre&&mlMap){
-    if(myLocMarker){try{myLocMarker.remove();}catch(e){}}
-    const el=document.createElement('div');el.style.cursor='pointer';el.innerHTML=bluePinSVG();
-    el.addEventListener('click',e=>{stopEvt(e);showPopup(lat,lon,popHTML);});
-    myLocMarker=new maplibregl.Marker({element:el,anchor:'bottom',opacityWhenCovered:'1'}).setLngLat([lon,lat]).addTo(mlMap);
-    mlMap.flyTo({center:[lon,lat],zoom:13.5,bearing:0,pitch:45,duration:fast?800:550,curve:1.3,essential:true});
+    if(myLocMarker){try{myLocMarker.setLngLat([lon,lat]);}catch(e){}}
+    else{
+      const el=document.createElement('div');el.style.cursor='pointer';el.className='myloc-dot';el.innerHTML=blueDotSVG();
+      el.addEventListener('click',e=>{stopEvt(e);onClick();});
+      myLocMarker=new maplibregl.Marker({element:el,anchor:'center',opacityWhenCovered:'1'}).setLngLat([lon,lat]).addTo(mlMap);
+    }
+    if(recenter)mlMap.flyTo({center:[lon,lat],zoom:13.5,bearing:0,pitch:45,duration:fast?800:550,curve:1.3,essential:true});
   }else if(lfMap){
-    if(myLocMarker){try{lfMap.removeLayer(myLocMarker);}catch(e){}}
-    const icon=L.divIcon({html:bluePinSVG(),iconSize:[30,40],iconAnchor:[15,38],className:''});
-    myLocMarker=L.marker([lat,lon],{icon}).addTo(lfMap).on('click',()=>showPopup(lat,lon,popHTML));
-    lfMap.setView([lat,lon],13);
+    if(myLocMarker){try{myLocMarker.setLatLng([lat,lon]);}catch(e){}}
+    else{
+      const icon=L.divIcon({html:blueDotSVG(),iconSize:[24,24],iconAnchor:[12,12],className:'myloc-dot'});
+      myLocMarker=L.marker([lat,lon],{icon}).addTo(lfMap).on('click',onClick);
+    }
+    if(recenter)lfMap.setView([lat,lon],13);
   }
+}
+// Live tracking: once permission is granted, keep the dot glued to your real position as you move.
+// watchPosition fires a callback every time the device reports a new fix; we move the dot, never the camera.
+function startLiveTracking(){
+  if(geoWatchId!=null||!navigator.geolocation)return;
+  geoWatchId=navigator.geolocation.watchPosition(
+    p=>{const la=p.coords.latitude,lo=p.coords.longitude;lastGeo={lat:la,lon:lo};placeMyLoc(la,lo,false,false);},
+    ()=>{},{enableHighAccuracy:true,timeout:20000,maximumAge:1000});
 }
 // Only ever PROMPTS once per session; after that reuse the cached fix (no repeat prompts).
 function goToMyLocation(fast,force){
-  if(lastGeo){placeMyLoc(lastGeo.lat,lastGeo.lon,fast);return;}
+  if(lastGeo){placeMyLoc(lastGeo.lat,lastGeo.lon,fast,true);startLiveTracking();return;}
   if((geoAsked&&!force)||!navigator.geolocation)return;   // auto path asks once; the button may force a retry
   geoAsked=true;
-  // Fast first: a low-accuracy / cached fix returns almost instantly. High accuracy waits on a
-  // GPS fix and on a laptop usually stalls the whole timeout (or fails) — that was the slow/no-zoom.
+  // Fast first: a low-accuracy / cached fix returns almost instantly, so the dot + zoom appear right away.
   navigator.geolocation.getCurrentPosition(
-    p=>{lastGeo={lat:p.coords.latitude,lon:p.coords.longitude};placeMyLoc(lastGeo.lat,lastGeo.lon,fast);},
+    p=>{lastGeo={lat:p.coords.latitude,lon:p.coords.longitude};placeMyLoc(lastGeo.lat,lastGeo.lon,fast,true);startLiveTracking();},
     ()=>{},{enableHighAccuracy:false,timeout:9000,maximumAge:600000});
-  // Then quietly refine with a precise fix and nudge the pin if it moved a meaningful amount.
-  navigator.geolocation.getCurrentPosition(
-    p=>{const la=p.coords.latitude,lo=p.coords.longitude;const moved=!lastGeo||Math.hypot(la-lastGeo.lat,lo-lastGeo.lon)>0.002;lastGeo={lat:la,lon:lo};if(moved&&myLocMarker){try{myLocMarker.setLngLat([lo,la]);}catch(e){}}},
-    ()=>{},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  // Then start continuous high-accuracy tracking so the dot follows you live.
+  startLiveTracking();
 }
 // Apple Maps on Apple devices, Google Maps elsewhere.
 function directionsURL(lat,lon){

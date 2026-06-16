@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Estimates"/>
+<meta name="theme-color" content="#c2410c"/>
+<title>Estimate Builder</title>
+<style>
+:root{--brand:#ea580c;--brand-dk:#c2410c;--brand-lt:#f97316;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+#hdr{background:linear-gradient(135deg,#7c2d12 0%,var(--brand) 55%,var(--brand-lt) 100%);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+#hdr-title{color:#fff;font-size:18px;font-weight:800;letter-spacing:-.2px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#hdr-r{display:flex;gap:6px;flex-shrink:0;}
+.hbtn{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 11px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;}
+.hbtn:active{background:rgba(255,255,255,.32);}
+
+/* ── Views ────────────────────────────────────────────────────────────── */
+.view{display:none;}
+.view.on{display:block;}
+
+/* ── List view ─────────────────────────────────────────────────────────── */
+#list-view{padding:14px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px);max-width:620px;margin:0 auto;}
+.new-est-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(234,88,12,.35);margin-bottom:16px;}
+.new-est-btn:active{background:var(--brand-dk);}
+.est-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px;display:flex;align-items:center;gap:11px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.est-card:active{background:#f1f5f9;}
+.ec-icon{font-size:26px;flex-shrink:0;}
+.ec-info{flex:1;min-width:0;}
+.ec-name{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ec-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.ec-total{font-size:17px;font-weight:800;color:var(--brand);white-space:nowrap;flex-shrink:0;}
+.ec-arrow{color:#cbd5e1;font-size:18px;flex-shrink:0;}
+.empty-state{text-align:center;padding:52px 20px;color:var(--muted);}
+.empty-ico{font-size:52px;margin-bottom:12px;}
+.empty-msg{font-size:16px;font-weight:700;color:#334155;margin-bottom:6px;}
+.empty-sub{font-size:14px;}
+
+/* ── Edit view ──────────────────────────────────────────────────────── */
+#edit-view{padding:14px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto;}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,.07);margin-bottom:14px;overflow:hidden;}
+.card-hdr{padding:11px 15px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-ttl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.card-bd{padding:13px 15px;}
+
+/* Form fields */
+.frow{margin-bottom:11px;}
+.frow:last-child{margin-bottom:0;}
+.flbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;}
+.finp{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-size:15px;color:var(--text);background:#fff;outline:none;-webkit-appearance:none;font-family:inherit;}
+.finp:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(234,88,12,.1);}
+select.finp{cursor:pointer;}
+textarea.finp{resize:vertical;min-height:72px;line-height:1.5;}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fgrid .frow{margin-bottom:0;}
+
+/* Item tables */
+.itbl{width:100%;border-collapse:collapse;}
+.itbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:7px 6px;border-bottom:1.5px solid var(--border);background:#f8fafc;white-space:nowrap;}
+.itbl td{padding:5px 3px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.itbl tr:last-child td{border-bottom:none;}
+.iinp{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 7px;font-size:13px;color:var(--text);background:#fff;outline:none;font-family:inherit;}
+.iinp:focus{border-color:var(--brand);}
+.iinp.qty{width:50px;text-align:center;}
+.iinp.price{width:80px;text-align:right;}
+.irow-tot{font-size:13px;font-weight:700;text-align:right;padding:0 6px;min-width:68px;white-space:nowrap;}
+.del-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:20px;line-height:1;padding:0 4px;transition:color .15s;}
+.del-btn:active{color:var(--red);}
+.add-item-btn{display:flex;align-items:center;gap:6px;background:none;border:1.5px dashed #cbd5e1;border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;width:100%;margin-top:7px;transition:border-color .15s,color .15s;}
+.add-item-btn:hover,.add-item-btn:focus{border-color:var(--brand);color:var(--brand);}
+
+/* Pricing rows */
+.prow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+.prow:last-child{border-bottom:none;}
+.plbl{flex:1;font-size:14px;color:var(--text);}
+.plbl.bold{font-weight:700;}
+.plbl.sm{font-size:12px;color:var(--muted);}
+.pinp{width:108px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:14px;font-weight:700;text-align:right;color:var(--text);outline:none;background:#fff;-webkit-appearance:none;font-family:inherit;}
+.pinp:focus{border-color:var(--brand);}
+.pval{font-size:15px;font-weight:800;min-width:85px;text-align:right;white-space:nowrap;}
+.pval.big{color:var(--brand);font-size:18px;}
+.chk-lbl{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;user-select:none;}
+.chk-lbl input[type=checkbox]{accent-color:var(--brand);cursor:pointer;width:15px;height:15px;}
+.mode-tog{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0;}
+.mbtn{flex:1;background:none;border:none;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;}
+.mbtn.on{background:var(--brand);color:#fff;}
+
+/* Summary */
+.sline{display:flex;align-items:baseline;gap:8px;padding:7px 0;}
+.sline:not(:last-child){border-bottom:1px solid #f1f5f9;}
+.slbl{flex:1;font-size:14px;color:var(--muted);}
+.slbl.bold{font-weight:700;color:var(--text);}
+.slbl.indent{font-size:12px;padding-left:14px;}
+.sval{font-size:15px;font-weight:700;color:var(--text);text-align:right;}
+.sval.big-green{color:var(--green);font-size:20px;}
+.sval.brand{color:var(--brand);font-size:22px;font-weight:800;}
+.sval.muted{color:var(--muted);font-size:14px;}
+
+/* Grand total banner */
+.gt-banner{background:linear-gradient(135deg,#7c2d12 0%,var(--brand) 55%,var(--brand-lt) 100%);border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 4px 14px rgba(234,88,12,.4);}
+.gt-lbl{font-size:12px;font-weight:700;opacity:.8;margin-bottom:2px;}
+.gt-amt{font-size:30px;font-weight:800;letter-spacing:-.5px;}
+.gt-right{text-align:right;}
+.gt-margin{font-size:24px;font-weight:800;}
+
+/* Profit bar */
+.pbar{height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin:10px 0 4px;}
+.pfill{height:100%;border-radius:4px;transition:width .4s ease,background .4s ease;}
+
+/* Bottom bar */
+#bot-bar{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:none;gap:8px;max-width:680px;margin:0 auto;}
+.abtn{flex:1;padding:13px;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:filter .12s;}
+.abtn:active{filter:brightness(.9);}
+.abtn.primary{background:var(--brand);color:#fff;}
+.abtn.secondary{background:#f1f5f9;color:var(--text);}
+
+/* Share modal */
+#share-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);padding:16px;align-items:flex-end;justify-content:center;}
+#share-modal.on{display:flex;}
+#share-box{background:#fff;border-radius:16px;width:100%;max-width:540px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.sm-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sm-hdr h2{font-size:16px;font-weight:700;}
+.sm-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1;padding:0 4px;}
+#share-txt{flex:1;overflow:auto;padding:14px;font-family:'SF Mono','Fira Mono',monospace;font-size:12px;white-space:pre;background:#f8fafc;outline:none;resize:none;width:100%;border:none;color:#1e293b;line-height:1.6;}
+.sm-foot{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+
+/* Print */
+@media print{
+  #hdr,#bot-bar,#share-modal{display:none!important;}
+  .card{box-shadow:none!important;border:1px solid #ddd!important;page-break-inside:avoid;}
+  body,#edit-view{background:#fff!important;padding:0!important;}
+  .gt-banner{box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+
+/* Responsive */
+@media(max-width:480px){
+  .fgrid{grid-template-columns:1fr;}
+  .gt-amt{font-size:24px;}
+  .gt-margin{font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div id="hdr">
+  <div id="hdr-title">🏗️ Estimates</div>
+  <div id="hdr-r">
+    <button class="hbtn" id="share-btn" onclick="showShare()">Share</button>
+    <button class="hbtn" id="print-btn" onclick="window.print()">Print</button>
+    <button class="hbtn" id="back-btn" onclick="goList()">← Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LIST VIEW
+═══════════════════════════════════════════════ -->
+<div id="list-view" class="view on">
+  <div id="list-wrap">
+    <button class="new-est-btn" onclick="newEst()">＋ New Estimate</button>
+    <div id="est-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     EDIT VIEW
+═══════════════════════════════════════════════ -->
+<div id="edit-view" class="view">
+
+  <!-- Project Info -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">📋 Project Info</span></div>
+    <div class="card-bd">
+      <div class="fgrid">
+        <div class="frow">
+          <label class="flbl">Client</label>
+          <input class="finp" id="f-client" placeholder="e.g. Dennis Dr" oninput="sv()"/>
+        </div>
+        <div class="frow">
+          <label class="flbl">PM</label>
+          <input class="finp" id="f-pm" placeholder="e.g. Keri" oninput="sv()"/>
+        </div>
+        <div class="frow">
+          <label class="flbl">Date</label>
+          <input class="finp" type="date" id="f-date" oninput="sv()"/>
+        </div>
+        <div class="frow">
+          <label class="flbl">Status</label>
+          <select class="finp" id="f-status" onchange="sv()">
+            <option value="draft">🟡 Draft</option>
+            <option value="sent">🔵 Sent</option>
+            <option value="approved">🟢 Approved</option>
+            <option value="completed">✅ Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow" style="margin-top:11px">
+        <label class="flbl">Job Notes</label>
+        <textarea class="finp" id="f-notes" placeholder="Scope of work, job details..." oninput="sv()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lumber -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-ttl">🪵 Lumber</span>
+      <span id="lumber-sub-lbl" style="font-size:13px;font-weight:800;color:var(--brand)"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="itbl">
+        <thead><tr>
+          <th style="padding-left:13px;width:54px">Qty</th>
+          <th>Description</th>
+          <th style="width:88px">Unit $</th>
+          <th style="width:74px;text-align:right;padding-right:8px">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="lumber-tb"></tbody>
+      </table>
+    </div>
+    <div style="padding:7px 13px 13px;">
+      <button class="add-item-btn" onclick="addItem('lumber')">＋ Add lumber item</button>
+    </div>
+  </div>
+
+  <!-- Hardware -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-ttl">🔩 Hardware</span>
+      <span id="hardware-sub-lbl" style="font-size:13px;font-weight:800;color:var(--brand)"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="itbl">
+        <thead><tr>
+          <th style="padding-left:13px;width:54px">Qty</th>
+          <th>Description</th>
+          <th style="width:88px">Unit $</th>
+          <th style="width:74px;text-align:right;padding-right:8px">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="hardware-tb"></tbody>
+      </table>
+    </div>
+    <div style="padding:7px 13px 13px;">
+      <button class="add-item-btn" onclick="addItem('hardware')">＋ Add hardware item</button>
+    </div>
+  </div>
+
+  <!-- Materials Pricing -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">💰 Materials Pricing</span></div>
+    <div class="card-bd">
+
+      <!-- Vendor Subtotal -->
+      <div class="prow">
+        <div class="plbl">Vendor Subtotal</div>
+        <label class="chk-lbl"><input type="checkbox" id="auto-vendor" checked onchange="sv();rc()"/> Auto</label>
+        <div class="pval" id="vendor-disp">$0</div>
+      </div>
+      <div class="prow" id="vendor-or-row" style="display:none">
+        <div class="plbl sm">Override amount</div>
+        <input class="pinp" id="vendor-or" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+
+      <!-- Taxes -->
+      <div class="prow">
+        <div class="plbl">Taxes</div>
+        <label class="chk-lbl"><input type="checkbox" id="tax-inc" checked onchange="sv();rc()"/> Included</label>
+        <input class="pinp" id="tax-amt" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()" style="display:none"/>
+      </div>
+
+      <!-- Upcharge -->
+      <div class="prow">
+        <div class="plbl">Upcharge</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="mode-tog">
+            <button class="mbtn on" id="uc-dollar" onclick="setUCMode('$')">$</button>
+            <button class="mbtn" id="uc-pct" onclick="setUCMode('%')">%</button>
+          </div>
+          <input class="pinp" id="uc-val" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()" style="width:88px"/>
+        </div>
+      </div>
+      <div id="uc-hint" style="font-size:11px;color:var(--muted);text-align:right;padding:2px 0 4px;display:none;"></div>
+
+      <!-- Buffer -->
+      <div class="prow">
+        <div class="plbl">Buffer</div>
+        <input class="pinp" id="buf-val" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+
+      <!-- Delivery -->
+      <div class="prow">
+        <div class="plbl">Delivery</div>
+        <label class="chk-lbl"><input type="checkbox" id="del-inc" checked onchange="sv();rc()"/> Included</label>
+        <input class="pinp" id="del-amt" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()" style="display:none"/>
+      </div>
+
+      <!-- Client Materials Total -->
+      <div class="prow" style="padding-top:13px;margin-top:6px;border-top:2px solid var(--border);">
+        <div class="plbl bold">Client Materials Total</div>
+        <div class="pval big" id="client-mat-total">$0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Labor -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">👷 Labor</span></div>
+    <div class="card-bd">
+      <div class="fgrid" style="margin-bottom:13px;">
+        <div class="frow">
+          <label class="flbl">Sub Name</label>
+          <input class="finp" id="sub-name" placeholder="e.g. Jairo" oninput="sv()"/>
+        </div>
+        <div class="frow">
+          <label class="flbl">Days</label>
+          <input class="finp" id="sub-days" placeholder="e.g. 3-4" oninput="sv()"/>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">Our Costs</div>
+      <div class="prow">
+        <div class="plbl">Sub Labor Cost</div>
+        <input class="pinp" id="sub-cost" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+      <div class="prow">
+        <div class="plbl">Sub Demo Cost</div>
+        <input class="pinp" id="sub-demo" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+
+      <div style="border-top:1.5px dashed var(--border);margin:10px 0;"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">We Charge Client</div>
+      <div class="prow">
+        <div class="plbl bold">Labor charge</div>
+        <input class="pinp" id="cli-labor" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+      <div class="prow">
+        <div class="plbl bold">Demo charge</div>
+        <input class="pinp" id="cli-demo" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Expenses -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">🧾 Other Expenses</span></div>
+    <div class="card-bd">
+      <div class="prow" style="border-bottom:none;">
+        <div class="plbl">My Expenses</div>
+        <input class="pinp" id="my-exp" type="number" min="0" step="0.01" placeholder="0" oninput="sv();rc()"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grand Total Banner -->
+  <div class="gt-banner">
+    <div>
+      <div class="gt-lbl">Grand Total (Client)</div>
+      <div class="gt-amt" id="gt-amount">$0</div>
+    </div>
+    <div class="gt-right">
+      <div class="gt-lbl">Profit Margin</div>
+      <div class="gt-margin" id="gt-margin">—</div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">📊 Summary</span></div>
+    <div class="card-bd">
+      <div class="sline">
+        <div class="slbl">Client Materials</div>
+        <div class="sval" id="s-mat"></div>
+      </div>
+      <div class="sline">
+        <div class="slbl">Client Labor + Demo</div>
+        <div class="sval" id="s-lab"></div>
+      </div>
+      <div class="sline" style="border-top:2px solid var(--border);margin-top:4px;padding-top:10px;">
+        <div class="slbl bold" style="font-size:16px;">Grand Total</div>
+        <div class="sval brand" id="s-gt"></div>
+      </div>
+
+      <div style="height:14px;"></div>
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">Expenses</div>
+      <div class="sline">
+        <div class="slbl indent">Vendor Materials</div>
+        <div class="sval muted" id="s-e-mat"></div>
+      </div>
+      <div class="sline">
+        <div class="slbl indent">Sub Labor + Demo</div>
+        <div class="sval muted" id="s-e-lab"></div>
+      </div>
+      <div class="sline">
+        <div class="slbl indent">My Expenses</div>
+        <div class="sval muted" id="s-e-me"></div>
+      </div>
+      <div class="sline" style="border-top:2px solid var(--border);margin-top:4px;padding-top:10px;">
+        <div class="slbl bold">Total Expenses</div>
+        <div class="sval" id="s-exp"></div>
+      </div>
+      <div class="sline" style="border-top:2px solid var(--border);margin-top:4px;padding-top:10px;">
+        <div class="slbl bold" style="font-size:16px;">Profit</div>
+        <div class="sval big-green" id="s-profit"></div>
+      </div>
+
+      <div class="pbar"><div class="pfill" id="pbar-fill"></div></div>
+      <div style="text-align:center;font-size:12px;color:var(--muted);" id="pbar-lbl"></div>
+    </div>
+  </div>
+
+</div><!-- /edit-view -->
+
+<!-- ── Bottom Bar ── -->
+<div id="bot-bar">
+  <button class="abtn secondary" onclick="delEst()">🗑 Delete</button>
+  <button class="abtn primary" onclick="goList()">✓ Save &amp; Back</button>
+</div>
+
+<!-- ── Share Modal ── -->
+<div id="share-modal">
+  <div id="share-box">
+    <div class="sm-hdr">
+      <h2>Share Estimate</h2>
+      <button class="sm-close" onclick="closeShare()">×</button>
+    </div>
+    <textarea id="share-txt" readonly></textarea>
+    <div class="sm-foot">
+      <button class="abtn secondary" id="copy-btn" onclick="copyShare()" style="flex:1;">📋 Copy</button>
+      <button class="abtn primary" onclick="closeShare()" style="flex:1;">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════════════════════════
+   STATE & PERSISTENCE
+════════════════════════════════════════════════════ */
+const STORE_KEY = 'est-builder-v3';
+let db = { ests: [], cur: null };
+
+function dbLoad() {
+  try { db = JSON.parse(localStorage.getItem(STORE_KEY)) || { ests: [], cur: null }; }
+  catch(e) { db = { ests: [], cur: null }; }
+}
+function dbSave() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(db));
+}
+
+/* ════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════ */
+function fmt(n) {
+  return '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function getEst(id) {
+  return db.ests.find(e => e.id === id);
+}
+
+/* ════════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════════ */
+function goList() {
+  document.getElementById('list-view').classList.add('on');
+  document.getElementById('edit-view').classList.remove('on');
+  document.getElementById('bot-bar').style.display = 'none';
+  document.getElementById('hdr-title').textContent = '🏗️ Estimates';
+  ['back-btn', 'print-btn', 'share-btn'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  renderList();
+}
+
+function goEdit(id) {
+  db.cur = id;
+  document.getElementById('list-view').classList.remove('on');
+  document.getElementById('edit-view').classList.add('on');
+  document.getElementById('bot-bar').style.display = 'flex';
+  ['back-btn', 'print-btn', 'share-btn'].forEach(id2 => {
+    document.getElementById(id2).style.display = 'block';
+  });
+  loadForm(id);
+  window.scrollTo(0, 0);
+}
+
+/* ════════════════════════════════════════════════════
+   ESTIMATE CRUD
+════════════════════════════════════════════════════ */
+function newEst() {
+  const id = uid();
+  db.ests.unshift({
+    id,
+    client: '', pm: '',
+    date: new Date().toISOString().slice(0, 10),
+    status: 'draft', notes: '',
+    lumber: [], hardware: [],
+    pr: { auto: true, orv: 0, taxInc: true, tax: 0, ucMode: '$', ucVal: 0, buf: 0, delInc: true, del: 0 },
+    lb: { name: '', days: '', subCost: 0, subDemo: 0, cliLab: 0, cliDemo: 0 },
+    myExp: 0
+  });
+  dbSave();
+  goEdit(id);
+}
+
+function delEst() {
+  if (!confirm('Delete this estimate?')) return;
+  db.ests = db.ests.filter(e => e.id !== db.cur);
+  db.cur = null;
+  dbSave();
+  goList();
+}
+
+/* ════════════════════════════════════════════════════
+   LOAD FORM FROM STATE
+════════════════════════════════════════════════════ */
+function loadForm(id) {
+  const e = getEst(id);
+  if (!e) return;
+
+  document.getElementById('hdr-title').textContent = e.client || 'New Estimate';
+  document.getElementById('f-client').value = e.client || '';
+  document.getElementById('f-pm').value = e.pm || '';
+  document.getElementById('f-date').value = e.date || '';
+  document.getElementById('f-status').value = e.status || 'draft';
+  document.getElementById('f-notes').value = e.notes || '';
+
+  const p = e.pr || {};
+  const autoV = p.auto !== false;
+  document.getElementById('auto-vendor').checked = autoV;
+  document.getElementById('vendor-or-row').style.display = autoV ? 'none' : 'flex';
+  document.getElementById('vendor-or').value = p.orv || '';
+  document.getElementById('tax-inc').checked = p.taxInc !== false;
+  document.getElementById('tax-amt').style.display = p.taxInc !== false ? 'none' : 'block';
+  document.getElementById('tax-amt').value = p.tax || '';
+  document.getElementById('uc-val').value = p.ucVal || '';
+  setUCMode(p.ucMode || '$', false);
+  document.getElementById('buf-val').value = p.buf || '';
+  document.getElementById('del-inc').checked = p.delInc !== false;
+  document.getElementById('del-amt').style.display = p.delInc !== false ? 'none' : 'block';
+  document.getElementById('del-amt').value = p.del || '';
+
+  const l = e.lb || {};
+  document.getElementById('sub-name').value = l.name || '';
+  document.getElementById('sub-days').value = l.days || '';
+  document.getElementById('sub-cost').value = l.subCost || '';
+  document.getElementById('sub-demo').value = l.subDemo || '';
+  document.getElementById('cli-labor').value = l.cliLab || '';
+  document.getElementById('cli-demo').value = l.cliDemo || '';
+  document.getElementById('my-exp').value = e.myExp || '';
+
+  renderItems('lumber', e.lumber || []);
+  renderItems('hardware', e.hardware || []);
+  rc();
+}
+
+/* ════════════════════════════════════════════════════
+   SAVE FORM → STATE
+════════════════════════════════════════════════════ */
+function sv() {
+  const e = getEst(db.cur);
+  if (!e) return;
+
+  e.client = document.getElementById('f-client').value;
+  e.pm = document.getElementById('f-pm').value;
+  e.date = document.getElementById('f-date').value;
+  e.status = document.getElementById('f-status').value;
+  e.notes = document.getElementById('f-notes').value;
+  document.getElementById('hdr-title').textContent = e.client || 'New Estimate';
+
+  const autoV = document.getElementById('auto-vendor').checked;
+  document.getElementById('vendor-or-row').style.display = autoV ? 'none' : 'flex';
+  const taxInc = document.getElementById('tax-inc').checked;
+  document.getElementById('tax-amt').style.display = taxInc ? 'none' : 'block';
+  const delInc = document.getElementById('del-inc').checked;
+  document.getElementById('del-amt').style.display = delInc ? 'none' : 'block';
+
+  e.pr = {
+    auto: autoV,
+    orv: parseFloat(document.getElementById('vendor-or').value) || 0,
+    taxInc,
+    tax: parseFloat(document.getElementById('tax-amt').value) || 0,
+    ucMode: e.pr?.ucMode || '$',
+    ucVal: parseFloat(document.getElementById('uc-val').value) || 0,
+    buf: parseFloat(document.getElementById('buf-val').value) || 0,
+    delInc,
+    del: parseFloat(document.getElementById('del-amt').value) || 0
+  };
+
+  e.lb = {
+    name: document.getElementById('sub-name').value,
+    days: document.getElementById('sub-days').value,
+    subCost: parseFloat(document.getElementById('sub-cost').value) || 0,
+    subDemo: parseFloat(document.getElementById('sub-demo').value) || 0,
+    cliLab: parseFloat(document.getElementById('cli-labor').value) || 0,
+    cliDemo: parseFloat(document.getElementById('cli-demo').value) || 0
+  };
+
+  e.myExp = parseFloat(document.getElementById('my-exp').value) || 0;
+  dbSave();
+}
+
+/* ════════════════════════════════════════════════════
+   UPCHARGE MODE TOGGLE
+════════════════════════════════════════════════════ */
+function setUCMode(m, doSave = true) {
+  const e = getEst(db.cur);
+  if (e) e.pr = { ...(e.pr || {}), ucMode: m };
+  document.getElementById('uc-dollar').classList.toggle('on', m === '$');
+  document.getElementById('uc-pct').classList.toggle('on', m === '%');
+  if (doSave) { dbSave(); rc(); }
+}
+
+/* ════════════════════════════════════════════════════
+   RECALCULATE & UPDATE UI
+════════════════════════════════════════════════════ */
+function rc() {
+  const e = getEst(db.cur);
+  if (!e) return;
+
+  function itemsSubtotal(arr) {
+    return (arr || []).reduce((s, it) => {
+      return s + (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0);
+    }, 0);
+  }
+
+  const lSub = itemsSubtotal(e.lumber);
+  const hSub = itemsSubtotal(e.hardware);
+  document.getElementById('lumber-sub-lbl').textContent = lSub > 0 ? fmt(lSub) : '';
+  document.getElementById('hardware-sub-lbl').textContent = hSub > 0 ? fmt(hSub) : '';
+
+  const p = e.pr || {};
+  const vendSub = p.auto !== false ? lSub + hSub : (p.orv || 0);
+  document.getElementById('vendor-disp').textContent = fmt(vendSub);
+
+  const ucVal = p.ucVal || 0;
+  const ucMode = p.ucMode || '$';
+  const ucAmt = ucMode === '%' ? vendSub * (ucVal / 100) : ucVal;
+  const hintEl = document.getElementById('uc-hint');
+  if (ucMode === '%' && ucVal > 0) {
+    hintEl.style.display = 'block';
+    hintEl.textContent = `${ucVal}% of ${fmt(vendSub)} = ${fmt(ucAmt)}`;
+  } else {
+    hintEl.style.display = 'none';
+  }
+
+  const taxAmt = p.taxInc ? 0 : (p.tax || 0);
+  const delAmt = p.delInc ? 0 : (p.del || 0);
+  const bufAmt = p.buf || 0;
+  const clientMat = vendSub + ucAmt + taxAmt + bufAmt + delAmt;
+  document.getElementById('client-mat-total').textContent = fmt(clientMat);
+
+  const l = e.lb || {};
+  const cliLabTotal = (l.cliLab || 0) + (l.cliDemo || 0);
+  const subLabTotal = (l.subCost || 0) + (l.subDemo || 0);
+  const grandTotal = clientMat + cliLabTotal;
+  const expenses = vendSub + subLabTotal + (e.myExp || 0);
+  const profit = grandTotal - expenses;
+  const margin = grandTotal > 0 ? (profit / grandTotal) * 100 : 0;
+
+  document.getElementById('gt-amount').textContent = fmt(grandTotal);
+  document.getElementById('gt-margin').textContent = grandTotal > 0 ? margin.toFixed(1) + '%' : '—';
+
+  document.getElementById('s-mat').textContent = fmt(clientMat);
+  document.getElementById('s-lab').textContent = fmt(cliLabTotal);
+  document.getElementById('s-gt').textContent = fmt(grandTotal);
+  document.getElementById('s-e-mat').textContent = fmt(vendSub);
+  document.getElementById('s-e-lab').textContent = fmt(subLabTotal);
+  document.getElementById('s-e-me').textContent = fmt(e.myExp || 0);
+  document.getElementById('s-exp').textContent = fmt(expenses);
+  document.getElementById('s-profit').textContent = fmt(profit);
+
+  const pct = Math.max(0, Math.min(100, margin));
+  const fill = document.getElementById('pbar-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = margin >= 40 ? '#16a34a' : margin >= 25 ? '#ca8a04' : '#dc2626';
+  document.getElementById('pbar-lbl').textContent = grandTotal > 0
+    ? `${margin.toFixed(1)}% profit margin`
+    : '';
+}
+
+/* ════════════════════════════════════════════════════
+   LINE ITEMS
+════════════════════════════════════════════════════ */
+function renderItems(type, arr) {
+  const tb = document.getElementById(`${type}-tb`);
+  tb.innerHTML = arr.map((it, i) => {
+    const q = parseFloat(it.qty) || 0;
+    const u = parseFloat(it.unitPrice) || 0;
+    const rowTotal = (q && u) ? `<span style="color:var(--text)">${fmt(q * u)}</span>` : `<span style="color:#e2e8f0">—</span>`;
+    return `<tr>
+      <td style="padding-left:10px;"><input class="iinp qty" type="number" min="1" value="${esc(it.qty || 1)}" oninput="updItem('${type}',${i},'qty',this.value)"/></td>
+      <td style="padding:5px 4px;"><input class="iinp" type="text" value="${esc(it.desc || '')}" placeholder="2x8 x18 / H1 / A35..." style="width:100%;min-width:110px;" oninput="updItem('${type}',${i},'desc',this.value)"/></td>
+      <td><input class="iinp price" type="number" min="0" step="0.01" value="${esc(it.unitPrice || '')}" placeholder="—" oninput="updItem('${type}',${i},'unitPrice',this.value)"/></td>
+      <td><div class="irow-tot" id="${type}-tot-${i}">${rowTotal}</div></td>
+      <td><button class="del-btn" onclick="rmItem('${type}',${i})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function addItem(type) {
+  const e = getEst(db.cur);
+  if (!e) return;
+  e[type].push({ qty: 1, desc: '', unitPrice: '' });
+  dbSave();
+  renderItems(type, e[type]);
+  rc();
+  const rows = document.getElementById(`${type}-tb`).querySelectorAll('tr');
+  rows[rows.length - 1]?.querySelectorAll('input')[1]?.focus();
+}
+
+function rmItem(type, i) {
+  const e = getEst(db.cur);
+  if (!e) return;
+  e[type].splice(i, 1);
+  dbSave();
+  renderItems(type, e[type]);
+  rc();
+}
+
+function updItem(type, i, field, val) {
+  const e = getEst(db.cur);
+  if (!e || !e[type][i]) return;
+  if (field === 'qty') {
+    e[type][i].qty = parseFloat(val) || 1;
+  } else if (field === 'unitPrice') {
+    e[type][i].unitPrice = val === '' ? '' : parseFloat(val) || 0;
+  } else {
+    e[type][i][field] = val;
+  }
+  const q = parseFloat(e[type][i].qty) || 0;
+  const u = parseFloat(e[type][i].unitPrice) || 0;
+  const totEl = document.getElementById(`${type}-tot-${i}`);
+  if (totEl) {
+    totEl.innerHTML = (q && u) ? `<span style="color:var(--text)">${fmt(q * u)}</span>` : `<span style="color:#e2e8f0">—</span>`;
+  }
+  dbSave();
+  rc();
+}
+
+/* ════════════════════════════════════════════════════
+   LIST VIEW
+════════════════════════════════════════════════════ */
+function calcGrandTotal(e) {
+  const iS = arr => (arr || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0), 0);
+  const p = e.pr || {};
+  const vS = p.auto !== false ? iS(e.lumber) + iS(e.hardware) : (p.orv || 0);
+  const uc = p.ucMode === '%' ? vS * ((p.ucVal || 0) / 100) : (p.ucVal || 0);
+  const mat = vS + uc + (p.taxInc ? 0 : p.tax || 0) + (p.buf || 0) + (p.delInc ? 0 : p.del || 0);
+  const l = e.lb || {};
+  return mat + (l.cliLab || 0) + (l.cliDemo || 0);
+}
+
+function renderList() {
+  const el = document.getElementById('est-list');
+  if (!db.ests.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-ico">📋</div>
+      <div class="empty-msg">No estimates yet</div>
+      <div class="empty-sub">Tap the button above to create one</div>
+    </div>`;
+    return;
+  }
+  const statusColors = { draft: '#ca8a04', sent: '#2563eb', approved: '#16a34a', completed: '#7c3aed' };
+  el.innerHTML = db.ests.map(e => {
+    const gt = calcGrandTotal(e);
+    const sc = statusColors[e.status] || '#94a3b8';
+    const metaParts = [];
+    if (e.pm) metaParts.push('PM: ' + esc(e.pm));
+    if (e.date) metaParts.push(e.date);
+    metaParts.push(`<span style="color:${sc};font-weight:700">${e.status || 'draft'}</span>`);
+    return `<div class="est-card" onclick="goEdit('${e.id}')">
+      <div class="ec-icon">🏗️</div>
+      <div class="ec-info">
+        <div class="ec-name">${esc(e.client || 'Untitled Estimate')}</div>
+        <div class="ec-meta">${metaParts.join(' · ')}</div>
+      </div>
+      <div class="ec-total">${gt > 0 ? fmt(gt) : '—'}</div>
+      <div class="ec-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════════
+   SHARE / EXPORT
+════════════════════════════════════════════════════ */
+function showShare() {
+  const e = getEst(db.cur);
+  if (!e) return;
+
+  const iS = arr => (arr || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0), 0);
+  const p = e.pr || {}, l = e.lb || {};
+  const vS = p.auto !== false ? iS(e.lumber) + iS(e.hardware) : (p.orv || 0);
+  const uc = p.ucMode === '%' ? vS * ((p.ucVal || 0) / 100) : (p.ucVal || 0);
+  const taxAmt = p.taxInc ? 0 : (p.tax || 0);
+  const delAmt = p.delInc ? 0 : (p.del || 0);
+  const bufAmt = p.buf || 0;
+  const clientMat = vS + uc + taxAmt + bufAmt + delAmt;
+  const cliLab = (l.cliLab || 0) + (l.cliDemo || 0);
+  const grandTotal = clientMat + cliLab;
+  const subExp = (l.subCost || 0) + (l.subDemo || 0);
+  const expenses = vS + subExp + (e.myExp || 0);
+  const profit = grandTotal - expenses;
+  const margin = grandTotal > 0 ? profit / grandTotal * 100 : 0;
+
+  const lines = [];
+  lines.push(e.client || 'Estimate');
+  if (e.pm) lines.push(`PM: ${e.pm}`);
+  if (e.date) lines.push(`Date: ${e.date}`);
+  if (e.notes) lines.push(`\nNotes:\n\t${e.notes.replace(/\n/g, '\n\t')}`);
+
+  if ((e.lumber || []).length) {
+    lines.push('\nLumber');
+    e.lumber.forEach(it => {
+      const q = parseFloat(it.qty) || 0, u = parseFloat(it.unitPrice) || 0;
+      const tot = (q && u) ? `  — ${fmt(q * u)}` : '';
+      lines.push(`\t(${q}) ${it.desc || ''}${tot}`);
+    });
+  }
+  if ((e.hardware || []).length) {
+    lines.push('\nHardware');
+    e.hardware.forEach(it => {
+      const q = parseFloat(it.qty) || 0, u = parseFloat(it.unitPrice) || 0;
+      const tot = (q && u) ? `  — ${fmt(q * u)}` : '';
+      lines.push(`\t(${q}) ${it.desc || ''}${tot}`);
+    });
+  }
+
+  lines.push('\nMaterials');
+  lines.push(`\tVendor subtotal: ${fmt(vS)}`);
+  if (p.taxInc) lines.push('\tTaxes: included');
+  else if (p.tax) lines.push(`\tTaxes: ${fmt(p.tax)}`);
+  if (uc) lines.push(`\tUpcharge: ${fmt(uc)}${p.ucMode === '%' ? ` (${p.ucVal}%)` : ''}`);
+  if (bufAmt) lines.push(`\tBuffer: ${fmt(bufAmt)}`);
+  if (p.delInc) lines.push('\tDelivery: included');
+  else if (p.del) lines.push(`\tDelivery: ${fmt(p.del)}`);
+  lines.push(`\tTotal: ${fmt(clientMat)}`);
+
+  lines.push('\nLabor');
+  const subLabel = l.name || 'Sub';
+  const subDays = l.days ? `, ${l.days} days` : '';
+  lines.push(`\t${subLabel}${subDays}, ${fmt(subExp)}`);
+  lines.push(`\tWe charge: ${fmt(cliLab)}${l.cliDemo ? ` ($${(l.cliDemo).toLocaleString()} for demo)` : ''}`);
+
+  lines.push(`\nGrand total: ${fmt(grandTotal)}`);
+  lines.push('\nExpenses');
+  lines.push(`\tLabor: ${fmt(subExp)}`);
+  if (e.myExp) lines.push(`\tMe: ~${fmt(e.myExp)}`);
+  lines.push(`\tMaterials: ${fmt(vS)}`);
+  lines.push(`\tTotal: ${fmt(expenses)}`);
+  lines.push(`\tWe stand to make: ${fmt(profit)} (profit margin: ~${margin.toFixed(0)}%)`);
+
+  document.getElementById('share-txt').value = lines.join('\n');
+  document.getElementById('share-modal').classList.add('on');
+}
+
+function closeShare() {
+  document.getElementById('share-modal').classList.remove('on');
+}
+
+function copyShare() {
+  const txt = document.getElementById('share-txt');
+  const btn = document.getElementById('copy-btn');
+  txt.select();
+  txt.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+  } catch (e) {
+    navigator.clipboard?.writeText(txt.value).catch(() => {});
+  }
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+}
+
+// Close modal on backdrop click
+document.getElementById('share-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeShare();
+});
+
+/* ════════════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════════════ */
+dbLoad();
+goList();
+</script>
+</body>
+</html>

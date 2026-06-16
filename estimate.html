@@ -596,7 +596,7 @@ function dbLoad() {
   try { db = JSON.parse(localStorage.getItem(STORE_KEY)) || { ests: [], cur: null }; }
   catch(e) { db = { ests: [], cur: null }; }
 }
-function dbSave() { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+function dbSave() { try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); } catch(e) {} }
 
 /* ══════════════════════════════════════════
    HELPERS
@@ -745,7 +745,7 @@ function sv() {
     orv: parseFloat(document.getElementById('vendor-or').value) || 0,
     taxInc: document.getElementById('tax-inc').checked,
     tax: parseFloat(document.getElementById('tax-amt').value) || 0,
-    ucMode: e.pr?.ucMode || '%',
+    ucMode: (e.pr && e.pr.ucMode) || '%',
     ucVal: parseFloat(document.getElementById('uc-val').value) || 0,
     buf: parseFloat(document.getElementById('buf-val').value) || 0,
     delInc: document.getElementById('del-inc').checked,
@@ -897,7 +897,7 @@ function addItem(type, desc) {
   const last = rows[rows.length - 1];
   if (last) {
     const target = desc ? last.querySelector('.iinp.price') : last.querySelectorAll('input')[1];
-    target?.focus();
+    if (target) target.focus();
   }
 }
 
@@ -1106,7 +1106,7 @@ function copyShare(){
   const txt=document.getElementById('share-txt');
   const btn=document.getElementById('copy-btn');
   txt.select(); txt.setSelectionRange(0,99999);
-  try{ document.execCommand('copy'); } catch(e){ navigator.clipboard?.writeText(txt.value).catch(()=>{}); }
+  try{ document.execCommand('copy'); } catch(e){ if(navigator.clipboard) navigator.clipboard.writeText(txt.value).catch(function(){}); }
   btn.textContent='✓ Copied!';
   setTimeout(()=>{ btn.textContent='📋 Copy'; },2000);
 }

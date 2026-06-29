@@ -78,14 +78,14 @@ html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;overflow:hi
 .leaflet-bottom.leaflet-right{margin-bottom:env(safe-area-inset-bottom,0px);margin-right:env(safe-area-inset-right,0px);}
 #map{width:100%;height:100%;}
 #mode-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(17,24,39,.85);color:rgba(255,255,255,.7);font-size:10px;padding:3px 10px;border-radius:12px;}
-#ctrl-panel{position:absolute;top:196px;left:8px;z-index:500;display:flex;flex-direction:column;gap:5px;width:116px;}
+#ctrl-panel{position:absolute;top:calc(196px + env(safe-area-inset-top,0px));left:8px;z-index:500;display:flex;flex-direction:column;gap:5px;width:116px;}
 body.probe-off #wind-vane{display:none;}
-body.probe-off #ctrl-panel{top:8px;}
+body.probe-off #ctrl-panel{top:calc(8px + env(safe-area-inset-top,0px));}
 .cbtn{background:rgba(17,24,39,.88);border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:6px 11px;color:white;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .cbtn.active{background:rgba(56,189,248,.28);border-color:#38bdf8;color:#7dd3fc;}
 #trow{display:flex;gap:6px;}
 #trow .cbtn{flex:1;height:34px;padding:0;display:flex;align-items:center;justify-content:center;}
-#wind-vane{position:absolute;top:8px;left:8px;z-index:500;background:rgba(17,24,39,.92);border-radius:12px;padding:9px 11px;color:white;min-width:116px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.4);border-top:3px solid #38bdf8;}
+#wind-vane{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;z-index:500;background:rgba(17,24,39,.92);border-radius:12px;padding:9px 11px;color:white;min-width:116px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.4);border-top:3px solid #38bdf8;}
 .wvt{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
 .wvs{font-size:18px;font-weight:700;color:#38bdf8;}
 #legend{position:absolute;bottom:10px;left:10px;z-index:500;background:rgba(255,255,255,.94);border-radius:8px;padding:7px 10px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.2);line-height:1.7;}
@@ -1055,7 +1055,7 @@ function syncCtrlPanel(){
     cp.style.top=(wv.offsetTop+wv.offsetHeight+6)+'px';
     cp.style.left=wv.offsetLeft+'px';
     cp.style.width=wv.offsetWidth+'px';
-  }else{cp.style.top='8px';cp.style.left='8px';cp.style.width='';}
+  }else{cp.style.top='calc(8px + env(safe-area-inset-top,0px))';cp.style.left='8px';cp.style.width='';}
 }
 function probeWind(lat,lon){
   if(!probeOn||lat==null||lon==null)return;
@@ -1416,6 +1416,23 @@ function setupLongPress(){
   },{passive:true});
   el.addEventListener('touchend',clear,{passive:true});
   el.addEventListener('touchcancel',clear,{passive:true});
+}
+
+// A drag that starts right at the very left/right screen edge is the "swipe back to the
+// menu" gesture — don't let the map pan underneath it, that looks broken. Suspend map
+// dragging for the duration of any touch that begins inside the edge band, restore on release.
+function setupEdgeGuard(){
+  const EDGE=28; let guarding=false;
+  const dragOff=()=>{try{if(useMapLibre&&mlMap)mlMap.dragPan.disable();else if(lfMap)lfMap.dragging.disable();}catch(e){}};
+  const dragOn=()=>{try{if(useMapLibre&&mlMap)mlMap.dragPan.enable();else if(lfMap)lfMap.dragging.enable();}catch(e){}};
+  const release=()=>{if(guarding){guarding=false;dragOn();}};
+  window.addEventListener('touchstart',e=>{
+    if(guarding||e.touches.length!==1)return;
+    const x=e.touches[0].clientX;
+    if(x<=EDGE||x>=window.innerWidth-EDGE){guarding=true;dragOff();}
+  },{passive:true,capture:true});
+  window.addEventListener('touchend',release,{passive:true});
+  window.addEventListener('touchcancel',release,{passive:true});
 }
 
 // ── Click handler ─────────────────────────────────────────────────────────────
@@ -1873,6 +1890,7 @@ function cullGhostMarkers(){
     initLeaflet();   // no auto-geolocate on load — use 📍 My location
   }
   setupLongPress();    // touch press-and-hold → drop an ad-hoc takeoff at that point
+  setupEdgeGuard();    // don't pan the map during an edge "swipe back to menu" gesture
   addMarkers();        // draw pins immediately (coloured 'caution' until weather lands)
   loadWeather();       // background: fills the strip + recolours pins when done
   prefetchParks();     // background: cache OSM park outlines so they show instantly on click

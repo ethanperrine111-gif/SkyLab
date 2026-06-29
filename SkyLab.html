@@ -358,6 +358,7 @@ body.dark .ppbio-tag{background:#422006;color:#fde68a;}
         <div class="lp-sec">Overlay</div>
         <label class="lp-row"><input type="checkbox" id="ov-sectional" onchange="toggleOverlay('sectional',this.checked)"/> ✈ VFR Sectional</label>
         <label class="lp-row"><input type="checkbox" id="ov-hiking" onchange="toggleOverlay('hiking',this.checked)"/> 🥾 Hiking trails <span style="opacity:.6;">(free)</span></label>
+        <label class="lp-row"><input type="checkbox" id="ov-tfr" onchange="toggleTFR(this.checked)"/> 🚫 Live TFRs <span id="tfr-status" style="opacity:.6;">(FAA)</span></label>
       </div>
     </div>
     <div id="br-controls">
@@ -775,6 +776,123 @@ function setBaseLayer(name){
 function toggleOverlay(name,on){
   if(useMapLibre&&mlMap){try{mlMap.setLayoutProperty(name,'visibility',on?'visible':'none');}catch(e){}}
   else if(lfMap){const l=lfOverlays[name];if(!l)return;if(on){l.addTo(lfMap);try{l.bringToFront();}catch(e){}}else lfMap.removeLayer(l);}
+}
+
+// ── Live TFRs (FAA Temporary Flight Restrictions) ─────────────────────────────
+// SkyLab is a static page and tfr.faa.gov sends no CORS headers, so the FAA feed is
+// pulled through a public CORS proxy. If the proxy is rate-limited or down, swap the
+// one line below for another (e.g. https://corsproxy.io/?url=). Arc/circle geometry is
+// approximated, so treat the shapes as situational awareness — verify against the FAA.
+const TFR_PROXY = u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u);
+// Only fetch geometry for TFRs in/near where SkyLab is used, to keep proxy traffic light.
+const TFR_REGION = ['UT','ID','WY','NV','AZ','CO','NM','MT','OR','WA','CA'];
+let tfrLayersLF=[], tfrBound=false;
+const tfrEsc=s=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// FAA coordinate → signed degrees. Handles packed DMS ("404512.00N" = 40°45'12"N) and
+// plain decimal ("40.7533N"); decimal degrees never exceed 3 integer digits, so 4+ ⇒ DMS.
+function faaToDeg(raw){
+  if(raw==null) return null;
+  let s=String(raw).trim(); let sign=1;
+  const h=(s.match(/[NSEW]/i)||[''])[0].toUpperCase();
+  if(h==='S'||h==='W') sign=-1;
+  s=s.replace(/[^\d.]/g,''); if(!s) return null;
+  const dot=s.indexOf('.'), intLen=(dot<0?s.length:dot);
+  let deg;
+  if(intLen>=4){const n=parseFloat(s);deg=Math.floor(n/10000)+(Math.floor(n/100)%100)/60+(n%100)/3600;}
+  else deg=parseFloat(s);
+  return isFinite(deg)? sign*Math.abs(deg) : null;
+}
+// Rough circle ring (lon/lat) for circular TFRs defined by centre + radius (NM).
+function tfrCircle(latC,lonC,radNm){
+  const pts=[], R=radNm/60, kx=Math.cos(latC*Math.PI/180)||1;
+  for(let a=0;a<=360;a+=10){const r=a*Math.PI/180;pts.push([lonC+(R*Math.sin(r))/kx,latC+R*Math.cos(r)]);}
+  return pts;
+}
+// Parse one FAA detail XML → {coords:[[lon,lat]...], name, desc, eff, exp} or null.
+function parseTfrXml(txt){
+  let doc; try{doc=new DOMParser().parseFromString(txt,'text/xml');}catch(e){return null;}
+  if(!doc||doc.getElementsByTagName('parsererror').length) return null;
+  const tx=t=>{const e=doc.getElementsByTagName(t);return e.length?e[0].textContent.trim():'';};
+  const tn=(el,t)=>{const e=el.getElementsByTagName(t);return e.length?e[0].textContent:'';};
+  const ring=[]; let circle=null;
+  [...doc.getElementsByTagName('Avx')].forEach(a=>{
+    const lat=faaToDeg(tn(a,'geoLat')), lon=faaToDeg(tn(a,'geoLong'));
+    const cLat=faaToDeg(tn(a,'geoLatArc')||tn(a,'geoLatCen'));
+    const cLon=faaToDeg(tn(a,'geoLongArc')||tn(a,'geoLongCen'));
+    const rad=parseFloat(tn(a,'valRadiusArc')||tn(a,'valDist'));
+    if(cLat!=null&&cLon!=null&&isFinite(rad)&&rad>0) circle={lat:cLat,lon:cLon,r:rad};
+    if(lat!=null&&lon!=null) ring.push([lon,lat]);
+  });
+  let coords=null;
+  if(ring.length>=3){const f=ring[0],l=ring[ring.length-1];if(f[0]!==l[0]||f[1]!==l[1])ring.push(f);coords=ring;}
+  else if(circle) coords=tfrCircle(circle.lat,circle.lon,circle.r);
+  if(!coords) return null;
+  return {coords,name:tx('txtLocalName')||tx('txtNameCity')||'TFR',desc:tx('txtDescrTraditional')||tx('txtDescrUSNS')||'',eff:tx('dateEffective'),exp:tx('dateExpire')};
+}
+// Fetch the active-TFR list, then the geometry for nearby ones → GeoJSON FeatureCollection.
+async function loadTFRs(){
+  let list;
+  const r=await fetch(TFR_PROXY('https://tfr.faa.gov/tfrapi/exportTfrList'),{cache:'no-store'});
+  if(!r.ok) throw new Error('list '+r.status);
+  list=await r.json();
+  if(!Array.isArray(list)) list=list.tfrList||list.data||[];
+  const near=list.filter(t=>{const st=(t.state||t.State||t.stateCode||'').toUpperCase();return TFR_REGION.includes(st);});
+  const pick=(near.length?near:list).slice(0,30);   // cap requests through the free proxy
+  const res=await Promise.allSettled(pick.map(async t=>{
+    const id=String(t.notam_id||t.notamId||t.NOTAM_ID||t.id||'').replace(/\//g,'_').replace(/\s/g,'');
+    if(!id) return null;
+    const xr=await fetch(TFR_PROXY('https://tfr.faa.gov/save_pages/detail_'+id+'.xml'),{cache:'no-store'});
+    if(!xr.ok) return null;
+    const p=parseTfrXml(await xr.text()); if(!p) return null;
+    return {type:'Feature',properties:{name:p.name,desc:p.desc,exp:p.exp,notam:t.notam_id||id},geometry:{type:'Polygon',coordinates:[p.coords]}};
+  }));
+  const feats=res.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value);
+  return {type:'FeatureCollection',features:feats};
+}
+function tfrPopup(p){p=p||{};return `<b>🚫 ${tfrEsc(p.name||'TFR')}</b>${p.notam?` <span style="opacity:.6;font-size:11px">${tfrEsc(p.notam)}</span>`:''}<br><span style="font-size:11px">${tfrEsc((p.desc||'').slice(0,320))}</span>${p.exp?`<br><span style="font-size:10px;opacity:.7">Expires: ${tfrEsc(p.exp)}</span>`:''}`;}
+function clearTFRLayersLF(){tfrLayersLF.forEach(l=>{try{lfMap.removeLayer(l);}catch(e){}});tfrLayersLF=[];}
+function removeTFRs(){
+  if(useMapLibre&&mlMap){['tfr-fill','tfr-line'].forEach(id=>{try{if(mlMap.getLayer(id))mlMap.removeLayer(id);}catch(e){}});try{if(mlMap.getSource('tfr'))mlMap.removeSource('tfr');}catch(e){}}
+  else if(lfMap) clearTFRLayersLF();
+}
+function drawTFRs(fc){
+  const col='#dc2626';
+  if(useMapLibre&&mlMap){
+    try{
+      if(mlMap.getSource('tfr')) mlMap.getSource('tfr').setData(fc);
+      else{
+        mlMap.addSource('tfr',{type:'geojson',data:fc});
+        mlMap.addLayer({id:'tfr-fill',type:'fill',source:'tfr',paint:{'fill-color':col,'fill-opacity':0.18}});
+        mlMap.addLayer({id:'tfr-line',type:'line',source:'tfr',paint:{'line-color':col,'line-width':2}});
+      }
+      if(!tfrBound){
+        mlMap.on('click','tfr-fill',e=>{new maplibregl.Popup().setLngLat(e.lngLat).setHTML(tfrPopup(e.features[0].properties)).addTo(mlMap);});
+        mlMap.on('mouseenter','tfr-fill',()=>{mlMap.getCanvas().style.cursor='pointer';});
+        mlMap.on('mouseleave','tfr-fill',()=>{mlMap.getCanvas().style.cursor='';});
+        tfrBound=true;
+      }
+    }catch(e){console.warn('drawTFRs',e);}
+  } else if(lfMap){
+    clearTFRLayersLF();
+    const gj=L.geoJSON(fc,{style:{color:col,weight:2,fillColor:col,fillOpacity:0.18}}).addTo(lfMap);
+    gj.eachLayer(l=>{l.bindPopup(tfrPopup(l.feature&&l.feature.properties));});
+    tfrLayersLF.push(gj);
+  }
+}
+async function toggleTFR(on){
+  const st=document.getElementById('tfr-status');
+  if(!on){removeTFRs();if(st)st.textContent='(FAA)';return;}
+  if(st)st.textContent='(loading…)';
+  try{
+    const fc=await loadTFRs();
+    drawTFRs(fc);
+    if(st)st.textContent=fc.features.length?`(${fc.features.length} active)`:'(none nearby)';
+  }catch(e){
+    console.warn('TFR load failed',e);
+    if(st)st.textContent='(unavailable)';
+    const cb=document.getElementById('ov-tfr'); if(cb)cb.checked=false;
+  }
 }
 
 // ── Simulated flight path (8:1 glide → corkscrew spiral to the LZ) ─────────────

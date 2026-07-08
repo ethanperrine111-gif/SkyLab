@@ -362,6 +362,8 @@ body.dark .ppbio-tag{background:#422006;color:#fde68a;}
         <div class="lp-sec">Overlay</div>
         <label class="lp-row"><input type="checkbox" id="ov-sectional" onchange="toggleOverlay('sectional',this.checked)"/> ✈ VFR Sectional</label>
         <label class="lp-row"><input type="checkbox" id="ov-hiking" onchange="toggleOverlay('hiking',this.checked)"/> 🥾 Hiking trails <span style="opacity:.6;">(free)</span></label>
+        <label class="lp-row"><input type="checkbox" id="ov-fedlands" onchange="toggleOverlay('fedlands',this.checked)"/> 🏞 Federal lands <span style="opacity:.6;">(NPS/USFS/BLM)</span></label>
+        <label class="lp-row"><input type="checkbox" id="ov-wilderness" onchange="toggleOverlay('wilderness',this.checked)"/> 🌲 Wilderness <span style="opacity:.6;">(no-fly)</span></label>
         <label class="lp-row"><input type="checkbox" id="ov-tfr" onchange="toggleTFR(this.checked)"/> 🚫 Live TFRs <span id="tfr-status" style="opacity:.6;">(FAA)</span></label>
         <label class="lp-row"><input type="checkbox" id="ov-fire" onchange="toggleFires(this.checked)"/> 🔥 Active fires <span id="fire-status" style="opacity:.6;">(NIFC)</span></label>
         <label class="lp-row"><input type="checkbox" id="ov-aqi" onchange="toggleAQI(this.checked)"/> 🌫 Air quality <span id="aqi-rowstatus" style="opacity:.6;">(AQI)</span></label>
@@ -511,7 +513,13 @@ const TILES={
   sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   topo:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
   sectional:'https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',
-  hiking:'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png'   // free Waymarked Trails hiking overlay (CC-BY-SA, OSM data)
+  hiking:'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',   // free Waymarked Trails hiking overlay (CC-BY-SA, OSM data)
+  // Federal land ownership (parks, forest, BLM, wilderness study areas) — BLM National Surface Management Agency.
+  // Dynamic ArcGIS map service export: MapLibre substitutes {bbox-epsg-3857}; the Leaflet fallback uses BboxTileLayer.
+  fedlands:'https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_LimitedScale/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&transparent=true&format=png32&f=image',
+  // National Wilderness Preservation System boundaries — USFS Enterprise Data Warehouse.
+  // Wilderness Act prohibits motorized aircraft; hang/paragliders should verify Section 4(d)(1) grandfathered use.
+  wilderness:'https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_WildernessAreas_01/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&transparent=true&format=png32&f=image'
 };
 const DEM_URL='https://tiles.mapterhorn.com/tilejson.json';
 
@@ -1749,6 +1757,11 @@ function initMapLibre(){
         // Free hiking-trail overlay (Waymarked Trails) — transparent route lines on top of the base map.
         m.addSource('hiking',{type:'raster',tiles:[TILES.hiking],tileSize:256,maxzoom:18,attribution:'Trails © waymarkedtrails.org, OSM'});
         m.addLayer({id:'hiking',type:'raster',source:'hiking',layout:{visibility:'none'},paint:{'raster-opacity':0.9}});
+        // Federal-land + wilderness boundary overlays (color-coded by managing agency; wilderness fills a distinct hue).
+        m.addSource('fedlands',{type:'raster',tiles:[TILES.fedlands],tileSize:256,attribution:'BLM National SMA'});
+        m.addLayer({id:'fedlands',type:'raster',source:'fedlands',layout:{visibility:'none'},paint:{'raster-opacity':0.55}});
+        m.addSource('wilderness',{type:'raster',tiles:[TILES.wilderness],tileSize:256,attribution:'USFS EDW · Wilderness Areas'});
+        m.addLayer({id:'wilderness',type:'raster',source:'wilderness',layout:{visibility:'none'},paint:{'raster-opacity':0.7}});
         m.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
         // Blue-dot geolocation (the native button is hidden via CSS; #geo-btn drives it).
         geoCtrl=new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true},trackUserLocation:false,showUserHeading:false,fitBoundsOptions:{maxZoom:12}});
@@ -1778,9 +1791,19 @@ function initLeaflet(){
     sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Imagery © Esri',maxZoom:19}),
     topo:L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',{attribution:'USGS',maxZoom:16})
   };
+  // Tile layer that computes an EPSG:3857 bbox per tile and drops it into an ArcGIS /export URL.
+  // Lets us mirror the MapLibre {bbox-epsg-3857} raster sources (federal lands, wilderness) in the Leaflet fallback.
+  const BboxTileLayer=L.TileLayer.extend({getTileUrl:function(coords){
+    const ts=this.getTileSize(),nwPt=coords.scaleBy(ts),sePt=nwPt.add(ts);
+    const nw=this._map.unproject(nwPt,coords.z),se=this._map.unproject(sePt,coords.z);
+    const a=L.CRS.EPSG3857.project(nw),b=L.CRS.EPSG3857.project(se);
+    return L.Util.template(this._url,{bbox:`${a.x},${b.y},${b.x},${a.y}`});
+  }});
   lfOverlays={
     sectional:L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{attribution:'FAA / Esri',maxZoom:11,opacity:0.85}),
-    hiking:L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{attribution:'Trails © waymarkedtrails.org, OSM',maxZoom:18,opacity:0.9})
+    hiking:L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{attribution:'Trails © waymarkedtrails.org, OSM',maxZoom:18,opacity:0.9}),
+    fedlands:new BboxTileLayer(TILES.fedlands.replace('{bbox-epsg-3857}','{bbox}'),{attribution:'BLM National SMA',opacity:0.55}),
+    wilderness:new BboxTileLayer(TILES.wilderness.replace('{bbox-epsg-3857}','{bbox}'),{attribution:'USFS EDW · Wilderness Areas',opacity:0.7})
   };
   lfBaseLayers.streets.addTo(m);
   m.on('click',e=>{if(suppressMapClick){suppressMapClick=false;return;}if(handleEditClick(e.latlng.lng,e.latlng.lat))return;showFlyPrompt(e.latlng.lat,e.latlng.lng);});

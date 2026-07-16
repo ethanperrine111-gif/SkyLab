@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0f1a"/>
+<title>Swellcast — Surf Forecast, Cams & Reports</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%8F%84%3C/text%3E%3C/svg%3E"/>
+<style>
+:root{
+  --bg:#0a0f1a; --bg2:#0f1626; --panel:#111a2e; --panel2:#172341;
+  --line:#223055; --text:#e6ecf5; --mute:#94a3b8; --dim:#64748b;
+  --brand:#ff7a1a; --brand2:#ffa54d; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+  --blue:#38bdf8; --blue2:#0ea5e9; --purple:#a78bfa; --teal:#2dd4bf;
+  --card-shadow:0 6px 24px rgba(0,0,0,.35);
+  --gold:#facc15;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+img{max-width:100%;display:block}
+input,select{font:inherit;color:inherit}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:#22304f;border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- Header ---------- */
+header{position:sticky;top:0;z-index:50;background:rgba(10,15,26,.85);
+  backdrop-filter:saturate(140%) blur(14px);-webkit-backdrop-filter:saturate(140%) blur(14px);
+  border-bottom:1px solid var(--line)}
+.nav{max-width:1400px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;font-size:19px}
+.brand-mark{width:28px;height:28px;border-radius:8px;
+  background:conic-gradient(from 200deg,var(--brand),#ff4e50,var(--brand2),var(--brand));
+  display:grid;place-items:center;box-shadow:0 6px 14px rgba(255,122,26,.35);color:#111;font-weight:900}
+.nav-links{display:flex;gap:2px;margin-left:8px}
+.nav-links a{padding:8px 12px;border-radius:8px;color:var(--mute);font-weight:600;font-size:14px}
+.nav-links a.active,.nav-links a:hover{color:#fff;background:#182241}
+.search{flex:1;max-width:520px;margin:0 12px;position:relative}
+.search input{width:100%;padding:10px 14px 10px 38px;border-radius:10px;background:#101a30;
+  border:1px solid var(--line);color:var(--text);outline:none}
+.search input:focus{border-color:#2b3d6e}
+.search svg{position:absolute;top:10px;left:12px;opacity:.7}
+.search-results{position:absolute;top:44px;left:0;right:0;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;max-height:340px;overflow:auto;box-shadow:var(--card-shadow);display:none;z-index:60}
+.search-results.open{display:block}
+.sr-item{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer}
+.sr-item:hover{background:#182241}
+.sr-item small{color:var(--mute)}
+.premium{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(255,122,26,.18),rgba(250,204,21,.14));
+  border:1px solid rgba(255,122,26,.4);color:var(--brand2);font-weight:700;font-size:12px}
+.premium .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(250,204,21,.15)}
+
+/* ---------- Layout ---------- */
+main{max-width:1400px;margin:0 auto;padding:20px}
+.h1{font-size:26px;font-weight:800;margin:0 0 4px}
+.sub{color:var(--mute);margin-bottom:18px}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.grid{display:grid;gap:16px}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1000px){.g-3,.g-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.g-2,.g-3,.g-4{grid-template-columns:1fr}.nav-links{display:none}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  box-shadow:var(--card-shadow)}
+.card-pad{padding:16px}
+.card-title{font-weight:700;letter-spacing:.3px;text-transform:uppercase;font-size:12px;color:var(--mute);margin:0 0 10px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;
+  background:#182241;color:var(--mute);border:1px solid var(--line)}
+.chip.good{color:var(--ok);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+.chip.fair{color:var(--warn);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}
+.chip.poor{color:var(--bad);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}
+.chip.epic{color:#fff;background:linear-gradient(135deg,var(--brand),#ff3e6c);border-color:transparent}
+.chip.premium{color:var(--gold);background:rgba(250,204,21,.10);border-color:rgba(250,204,21,.35)}
+
+/* ---------- Cam ---------- */
+.cam{position:relative;background:#000;aspect-ratio:16/9;overflow:hidden}
+.cam canvas{width:100%;height:100%;display:block}
+.cam-overlay{position:absolute;left:0;right:0;bottom:0;top:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 25%,transparent 60%,rgba(0,0,0,.55) 100%);
+  padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.cam-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cam-live{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.55);
+  border-radius:6px;padding:5px 9px;font-size:11px;font-weight:800;letter-spacing:.5px}
+.cam-live .live-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;
+  animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.35)}}
+.cam-hd{background:rgba(0,0,0,.5);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:800;color:var(--gold);border:1px solid rgba(250,204,21,.5)}
+.cam-btm{display:flex;justify-content:space-between;align-items:flex-end;pointer-events:auto}
+.cam-name{font-weight:700;font-size:15px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.cam-name small{display:block;font-weight:500;color:#cbd5e1;font-size:12px}
+.cam-actions{display:flex;gap:8px}
+.cam-actions button{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);
+  padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600}
+.cam-actions button:hover{background:rgba(255,255,255,.15)}
+
+/* ---------- Spot detail ---------- */
+.spot-hero{position:relative;overflow:hidden;border-radius:16px;background:#000;
+  border:1px solid var(--line)}
+.spot-hero .cam{aspect-ratio:21/9}
+@media(max-width:640px){.spot-hero .cam{aspect-ratio:16/9}}
+.conditions-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:#0d1424;
+  border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px}
+.conditions-strip > div{padding:14px 16px;border-right:1px solid var(--line)}
+.conditions-strip > div:last-child{border-right:none}
+.conditions-strip .k{color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.conditions-strip .v{font-size:20px;font-weight:800;margin-top:3px}
+.conditions-strip .u{font-size:12px;color:var(--mute);font-weight:500}
+@media(max-width:900px){.conditions-strip{grid-template-columns:repeat(3,1fr)}
+  .conditions-strip > div{border-bottom:1px solid var(--line)}}
+
+/* ---------- Charts ---------- */
+.chart-wrap{padding:8px 6px 6px}
+.chart{width:100%;height:180px;display:block}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 12px 12px;font-size:12px;color:var(--mute)}
+.chart-legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* ---------- Day cards ---------- */
+.days{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+@media(max-width:1100px){.days{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){.days{grid-template-columns:repeat(2,1fr)}}
+.day{background:#0d1424;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.day .dow{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.day .dt{font-size:13px;font-weight:700;margin-top:2px}
+.day .wv{font-size:20px;font-weight:800;margin-top:6px;color:var(--blue)}
+.day .rt{margin-top:6px}
+.day.today{border-color:var(--brand);background:linear-gradient(180deg,rgba(255,122,26,.10),transparent 60%)}
+
+/* ---------- Spot cards ---------- */
+.spot-card{cursor:pointer;transition:transform .15s ease}
+.spot-card:hover{transform:translateY(-2px)}
+.spot-card .cam{aspect-ratio:16/10}
+.spot-card .body{padding:12px 14px}
+.spot-card .body h3{margin:0 0 2px;font-size:15px;font-weight:700}
+.spot-card .body .region{color:var(--mute);font-size:12px}
+.spot-card .body .cond{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.spot-card .body .cond .wave{font-size:18px;font-weight:800;color:var(--blue)}
+
+/* ---------- Utility ---------- */
+.spacer{height:24px}
+.section-head{display:flex;justify-content:space-between;align-items:end;margin:24px 4px 12px}
+.section-head h2{margin:0;font-size:20px}
+.section-head a{color:var(--brand2);font-weight:700;font-size:13px}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:var(--brand);
+  color:#111;border-radius:10px;font-weight:800;font-size:13px}
+.btn:hover{filter:brightness(1.05)}
+.btn.ghost{background:#182241;color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:#1e2a4e}
+.rating-bar{height:6px;border-radius:3px;background:#182241;overflow:hidden;margin-top:6px}
+.rating-bar > div{height:100%;transition:width .5s ease}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr}}
+
+.fav{cursor:pointer;font-size:20px;color:var(--dim);transition:transform .15s ease}
+.fav.on{color:var(--gold)}
+.fav:hover{transform:scale(1.15)}
+
+.footer{color:var(--dim);text-align:center;padding:36px 20px;font-size:12px}
+.footer a{color:var(--brand2)}
+
+.loading{padding:32px;text-align:center;color:var(--mute)}
+.loading .spin{display:inline-block;width:22px;height:22px;border-radius:50%;
+  border:3px solid #223055;border-top-color:var(--brand);animation:spin 1s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tide-labels{display:flex;justify-content:space-between;padding:0 12px 10px;font-size:12px;color:var(--mute)}
+.ai-report{background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(56,189,248,.06));
+  border:1px solid rgba(167,139,250,.3);border-radius:12px;padding:14px 16px}
+.ai-report h4{margin:0 0 6px;font-size:13px;color:var(--purple);text-transform:uppercase;letter-spacing:.5px}
+.ai-report p{margin:0;font-size:14px;line-height:1.55}
+.ai-report .badge{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,.15);color:var(--purple);
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tab{padding:10px 14px;color:var(--mute);font-weight:600;font-size:14px;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:#fff;border-bottom-color:var(--brand)}
+
+.session-card{display:flex;gap:12px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.session-thumb{width:120px;aspect-ratio:16/10;border-radius:8px;flex-shrink:0;position:relative;overflow:hidden;background:#000}
+.session-thumb .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:22px;background:rgba(0,0,0,.35)}
+.session-meta{flex:1;min-width:0}
+.session-meta h4{margin:0 0 4px;font-size:14px}
+.session-meta .stats{display:flex;gap:10px;font-size:12px;color:var(--mute);flex-wrap:wrap;margin-top:6px}
+
+.travel-card{position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;cursor:pointer;background:#000}
+.travel-card canvas{position:absolute;inset:0;width:100%;height:100%}
+.travel-card .info{position:absolute;left:0;right:0;bottom:0;padding:12px 14px;
+  background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff}
+.travel-card h4{margin:0;font-size:15px}
+.travel-card p{margin:3px 0 0;font-size:12px;color:#cbd5e1}
+
+.notice{background:linear-gradient(135deg,rgba(255,122,26,.14),rgba(250,204,21,.06));
+  border:1px solid rgba(255,122,26,.35);border-radius:12px;padding:14px 16px;display:flex;gap:14px;align-items:center}
+.notice .n-icon{font-size:22px}
+.notice p{margin:0;font-size:14px}
+.notice strong{color:var(--brand2)}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brand" href="#/">
+      <div class="brand-mark">S</div>
+      Swellcast
+    </a>
+    <nav class="nav-links">
+      <a href="#/" data-nav="home">Home</a>
+      <a href="#/cams" data-nav="cams">Cams</a>
+      <a href="#/forecast" data-nav="forecast">Forecast</a>
+      <a href="#/travel" data-nav="travel">Travel</a>
+      <a href="#/sessions" data-nav="sessions">Sessions</a>
+    </nav>
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search-input" placeholder="Search spots, regions, buoys…" autocomplete="off"/>
+      <div id="search-results" class="search-results"></div>
+    </div>
+    <div class="premium" title="All premium features unlocked">
+      <span class="dot"></span> PREMIUM
+    </div>
+  </div>
+</header>
+
+<main id="app">
+  <div class="loading"><span class="spin"></span>Loading forecast…</div>
+</main>
+
+<div class="footer">
+  Swellcast — surf forecasts powered by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo Marine</a>.
+  Wave animations rendered locally from live conditions. Not affiliated with Surfline.
+</div>
+
+<script>
+/* =========================================================
+   DATA — surf spots (curated global set)
+   ========================================================= */
+const SPOTS = [
+  // California
+  {id:"lower-trestles", name:"Lower Trestles", region:"San Clemente, California", country:"USA",
+    lat:33.383, lon:-117.591, tz:"America/Los_Angeles", difficulty:"Advanced", type:"Cobblestone point",
+    facing:225, ideal:{swellDir:[200,250], windDir:[45,135], size:[0.9,2.4]}, hero:"#0b3b5c"},
+  {id:"malibu", name:"Malibu First Point", region:"Los Angeles, California", country:"USA",
+    lat:34.036, lon:-118.678, tz:"America/Los_Angeles", difficulty:"All levels", type:"Right point break",
+    facing:200, ideal:{swellDir:[195,240], windDir:[0,90], size:[0.6,1.8]}, hero:"#0b4b6c"},
+  {id:"steamer-lane", name:"Steamer Lane", region:"Santa Cruz, California", country:"USA",
+    lat:36.951, lon:-122.026, tz:"America/Los_Angeles", difficulty:"Advanced", type:"Right point / reef",
+    facing:225, ideal:{swellDir:[210,270], windDir:[45,135], size:[1.2,3.5]}, hero:"#083a55"},
+  {id:"mavericks", name:"Mavericks", region:"Half Moon Bay, California", country:"USA",
+    lat:37.494, lon:-122.501, tz:"America/Los_Angeles", difficulty:"Expert", type:"Big wave reef",
+    facing:250, ideal:{swellDir:[270,330], windDir:[45,135], size:[3,12]}, hero:"#062133"},
+  // Hawaii
+  {id:"pipeline", name:"Banzai Pipeline", region:"North Shore, Oahu", country:"Hawaii",
+    lat:21.665, lon:-158.053, tz:"Pacific/Honolulu", difficulty:"Expert", type:"Reef barrel",
+    facing:330, ideal:{swellDir:[300,340], windDir:[90,180], size:[1.5,4.5]}, hero:"#083b40"},
+  {id:"jaws", name:"Jaws (Peʻahi)", region:"Maui, Hawaii", country:"Hawaii",
+    lat:20.941, lon:-156.291, tz:"Pacific/Honolulu", difficulty:"Expert", type:"Big wave reef",
+    facing:335, ideal:{swellDir:[310,360], windDir:[90,180], size:[3,15]}, hero:"#052934"},
+  {id:"waikiki", name:"Waikiki (Queens)", region:"Honolulu, Oahu", country:"Hawaii",
+    lat:21.276, lon:-157.826, tz:"Pacific/Honolulu", difficulty:"Beginner", type:"Reef longboard",
+    facing:180, ideal:{swellDir:[160,220], windDir:[0,90], size:[0.5,1.5]}, hero:"#0b5766"},
+  // Australia
+  {id:"snapper", name:"Snapper Rocks / Superbank", region:"Gold Coast, QLD", country:"Australia",
+    lat:-28.164, lon:153.549, tz:"Australia/Brisbane", difficulty:"All levels", type:"Sand point",
+    facing:120, ideal:{swellDir:[100,180], windDir:[225,315], size:[0.9,2.5]}, hero:"#0d4a4a"},
+  {id:"bells", name:"Bells Beach", region:"Victoria", country:"Australia",
+    lat:-38.371, lon:144.283, tz:"Australia/Melbourne", difficulty:"Intermediate", type:"Reef right",
+    facing:210, ideal:{swellDir:[180,240], windDir:[0,90], size:[1.2,3]}, hero:"#093a52"},
+  {id:"margaret-river", name:"Margaret River Main Break", region:"Western Australia", country:"Australia",
+    lat:-33.960, lon:114.988, tz:"Australia/Perth", difficulty:"Advanced", type:"Reef",
+    facing:250, ideal:{swellDir:[210,290], windDir:[45,135], size:[1.5,4]}, hero:"#0a3f5c"},
+  // Indonesia
+  {id:"uluwatu", name:"Uluwatu", region:"Bali", country:"Indonesia",
+    lat:-8.815, lon:115.089, tz:"Asia/Makassar", difficulty:"Advanced", type:"Reef left",
+    facing:225, ideal:{swellDir:[195,255], windDir:[45,135], size:[1.2,3.5]}, hero:"#0e5a5a"},
+  {id:"padang-padang", name:"Padang Padang", region:"Bali", country:"Indonesia",
+    lat:-8.808, lon:115.104, tz:"Asia/Makassar", difficulty:"Advanced", type:"Reef barrel",
+    facing:225, ideal:{swellDir:[195,255], windDir:[45,135], size:[1.5,3.5]}, hero:"#0c5757"},
+  // Portugal
+  {id:"nazare", name:"Nazaré (Praia do Norte)", region:"Nazaré", country:"Portugal",
+    lat:39.607, lon:-9.083, tz:"Europe/Lisbon", difficulty:"Expert", type:"Big wave beach/reef",
+    facing:270, ideal:{swellDir:[270,330], windDir:[45,135], size:[3,20]}, hero:"#123057"},
+  {id:"ericeira", name:"Coxos, Ericeira", region:"Ericeira", country:"Portugal",
+    lat:38.988, lon:-9.418, tz:"Europe/Lisbon", difficulty:"Advanced", type:"Reef right",
+    facing:270, ideal:{swellDir:[270,330], windDir:[45,135], size:[1.2,3]}, hero:"#0d3357"},
+  // France
+  {id:"hossegor", name:"La Gravière, Hossegor", region:"Landes", country:"France",
+    lat:43.671, lon:-1.443, tz:"Europe/Paris", difficulty:"Advanced", type:"Beach barrel",
+    facing:280, ideal:{swellDir:[270,330], windDir:[45,135], size:[1.2,3.5]}, hero:"#0c3453"},
+  // South Africa
+  {id:"jbay", name:"Supertubes, J-Bay", region:"Jeffreys Bay", country:"South Africa",
+    lat:-34.048, lon:24.905, tz:"Africa/Johannesburg", difficulty:"Advanced", type:"Reef right point",
+    facing:180, ideal:{swellDir:[180,240], windDir:[225,315], size:[1.2,3.5]}, hero:"#0a4959"},
+  // Mexico
+  {id:"puerto", name:"Puerto Escondido", region:"Oaxaca", country:"Mexico",
+    lat:15.859, lon:-97.076, tz:"America/Mexico_City", difficulty:"Expert", type:"Beach barrel",
+    facing:180, ideal:{swellDir:[180,240], windDir:[0,60], size:[1.5,5]}, hero:"#0d3a4d"},
+  // Peru
+  {id:"chicama", name:"Chicama", region:"La Libertad", country:"Peru",
+    lat:-7.700, lon:-79.446, tz:"America/Lima", difficulty:"Intermediate", type:"Left point",
+    facing:225, ideal:{swellDir:[195,245], windDir:[135,225], size:[0.9,2.5]}, hero:"#083d55"},
+  // Fiji
+  {id:"cloudbreak", name:"Cloudbreak", region:"Tavarua, Fiji", country:"Fiji",
+    lat:-17.870, lon:177.190, tz:"Pacific/Fiji", difficulty:"Expert", type:"Reef left",
+    facing:225, ideal:{swellDir:[195,250], windDir:[45,135], size:[1.5,4.5]}, hero:"#0e5757"},
+  // Tahiti
+  {id:"teahupoo", name:"Teahupo'o", region:"Tahiti", country:"French Polynesia",
+    lat:-17.856, lon:-149.267, tz:"Pacific/Tahiti", difficulty:"Expert", type:"Reef barrel",
+    facing:180, ideal:{swellDir:[180,230], windDir:[45,135], size:[1.5,5]}, hero:"#0b5252"},
+];
+
+const REGIONS = [
+  {id:"southern-california", name:"Southern California", spots:["lower-trestles","malibu"]},
+  {id:"northern-california", name:"Northern California", spots:["steamer-lane","mavericks"]},
+  {id:"hawaii", name:"Hawaii", spots:["pipeline","jaws","waikiki"]},
+  {id:"australia-east", name:"East Australia", spots:["snapper","bells"]},
+  {id:"indonesia", name:"Indonesia", spots:["uluwatu","padang-padang"]},
+  {id:"europe", name:"Europe", spots:["nazare","ericeira","hossegor"]},
+];
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+const $ = s=>document.querySelector(s);
+const app = ()=>document.getElementById('app');
+
+const CACHE = new Map(); // key -> {ts, data}
+const CACHE_MS = 15*60*1000;
+
+async function fetchJSON(url){
+  const cached = CACHE.get(url);
+  if(cached && Date.now()-cached.ts < CACHE_MS) return cached.data;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j = await r.json();
+  CACHE.set(url, {ts:Date.now(), data:j});
+  return j;
+}
+
+async function loadSpotForecast(spot){
+  const marineParams = [
+    "wave_height","wave_direction","wave_period",
+    "swell_wave_height","swell_wave_direction","swell_wave_period",
+    "wind_wave_height","wind_wave_period",
+    "sea_surface_temperature","sea_level_height_msl"
+  ].join(",");
+  const marineURL = `https://marine-api.open-meteo.com/v1/marine?latitude=${spot.lat}&longitude=${spot.lon}`+
+    `&hourly=${marineParams}&daily=wave_height_max,wave_period_max,wave_direction_dominant&forecast_days=10&timezone=${encodeURIComponent(spot.tz)}`;
+  const weatherURL = `https://api.open-meteo.com/v1/forecast?latitude=${spot.lat}&longitude=${spot.lon}`+
+    `&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,uv_index,weather_code`+
+    `&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code`+
+    `&forecast_days=10&timezone=${encodeURIComponent(spot.tz)}`;
+  const [marine, weather] = await Promise.all([
+    fetchJSON(marineURL).catch(e=>{console.warn(e); return null;}),
+    fetchJSON(weatherURL).catch(e=>{console.warn(e); return null;})
+  ]);
+  return {marine, weather};
+}
+
+function nowIndex(times){
+  const now = Date.now();
+  let best = 0, bestDiff = Infinity;
+  for(let i=0;i<times.length;i++){
+    const t = new Date(times[i]).getTime();
+    const d = Math.abs(t-now);
+    if(d<bestDiff){bestDiff=d;best=i;}
+  }
+  return best;
+}
+
+function mps_to_kts(m){return m*1.94384;}
+function mps_to_mph(m){return m*2.23694;}
+function m_to_ft(m){return m*3.28084;}
+function cToF(c){return c*9/5+32;}
+
+function compass(deg){
+  const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(((deg%360)/22.5))%16];
+}
+function inRange(v, [a,b]){ if(a<=b) return v>=a&&v<=b; return v>=a||v<=b; }
+
+/** Rate conditions for a spot given wave height (m), swell dir, wind speed (kts), wind dir. Returns {score 0-10, label} */
+function rateConditions(spot, waveH, swellDir, windKts, windDir){
+  const ideal = spot.ideal;
+  let score = 5;
+  if(waveH!=null){
+    if(inRange(waveH, ideal.size)) score += 2;
+    else if(waveH < ideal.size[0]) score -= (ideal.size[0]-waveH)*3;
+    else score -= (waveH-ideal.size[1])*1.5;
+  }
+  if(swellDir!=null && inRange(swellDir, ideal.swellDir)) score += 1.5;
+  else if(swellDir!=null) score -= 1;
+  if(windKts!=null){
+    if(windKts < 5) score += 1;
+    else if(windKts > 20) score -= 3;
+    else if(windKts > 12) score -= 1.5;
+  }
+  if(windDir!=null && windKts!=null && windKts>3){
+    const offshore = (spot.facing + 180) % 360;
+    let diff = Math.abs(((windDir - offshore + 540)%360)-180);
+    if(diff < 45) score += 2;      // offshore
+    else if(diff > 135) score -= 2; // onshore
+  }
+  score = Math.max(0, Math.min(10, score));
+  let label = "Poor", cls = "poor";
+  if(score >= 8.5){label="Epic"; cls="epic";}
+  else if(score >= 7){label="Very Good"; cls="good";}
+  else if(score >= 5.5){label="Good"; cls="good";}
+  else if(score >= 4){label="Fair"; cls="fair";}
+  return {score, label, cls};
+}
+
+/* =========================================================
+   ANIMATED OCEAN CAM (Canvas)
+   ========================================================= */
+const activeAnimations = new Set();
+function startOceanCam(canvas, opts){
+  const ctx = canvas.getContext('2d');
+  let W=0,H=0;
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.floor(r.width*dpr); H = Math.floor(r.height*dpr);
+    canvas.width=W; canvas.height=H;
+  }
+  resize();
+  const ro = new ResizeObserver(resize);
+  ro.observe(canvas);
+
+  const anim = {stopped:false};
+  activeAnimations.add(anim);
+
+  const timeOfDay = opts.timeOfDay ?? getTOD(opts.tz);
+  const palette = todPalette(timeOfDay);
+  const waveEnergy = Math.max(0.3, Math.min(3, opts.waveH||1));
+  const windEnergy = Math.max(0, Math.min(30, opts.windKts||6));
+  const wavesCount = 5 + Math.floor(waveEnergy*1.4);
+
+  let t0 = performance.now();
+  function draw(now){
+    if(anim.stopped) return;
+    const t = (now-t0)/1000;
+    // sky gradient
+    const g = ctx.createLinearGradient(0,0,0,H);
+    palette.sky.forEach((c,i)=>g.addColorStop(i/(palette.sky.length-1), c));
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,W,H);
+
+    // sun/moon
+    const sunX = W*0.78, sunY = H*(0.22 + Math.sin(timeOfDay*Math.PI)*0.05);
+    const sunR = Math.max(28, W*0.035);
+    const sunG = ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,sunR*3);
+    sunG.addColorStop(0,palette.sun);
+    sunG.addColorStop(0.3,palette.sun.replace('1)','0.6)'));
+    sunG.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sunG;
+    ctx.fillRect(0,0,W,H);
+    ctx.beginPath(); ctx.arc(sunX,sunY,sunR,0,Math.PI*2);
+    ctx.fillStyle=palette.sun; ctx.fill();
+
+    // distant clouds
+    ctx.globalAlpha = 0.35;
+    for(let i=0;i<4;i++){
+      const cx = ((t*8 + i*W/3) % (W+200)) - 100;
+      const cy = H*(0.1+i*0.04);
+      ctx.fillStyle = palette.cloud;
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,90,14,0,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // horizon line + haze
+    const horizonY = H*0.48;
+    const hazeG = ctx.createLinearGradient(0,horizonY-40,0,horizonY+10);
+    hazeG.addColorStop(0,'rgba(255,255,255,0)');
+    hazeG.addColorStop(1,palette.haze);
+    ctx.fillStyle=hazeG;
+    ctx.fillRect(0,horizonY-40,W,50);
+
+    // ocean base
+    const seaG = ctx.createLinearGradient(0,horizonY,0,H);
+    palette.sea.forEach((c,i)=>seaG.addColorStop(i/(palette.sea.length-1), c));
+    ctx.fillStyle=seaG;
+    ctx.fillRect(0,horizonY,W,H-horizonY);
+
+    // sun reflection
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    const refG = ctx.createLinearGradient(sunX,horizonY,sunX,H);
+    refG.addColorStop(0,palette.sun.replace('1)','0.35)'));
+    refG.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=refG;
+    ctx.beginPath();
+    ctx.moveTo(sunX-40,horizonY);
+    ctx.lineTo(sunX+40,horizonY);
+    ctx.lineTo(sunX+180,H);
+    ctx.lineTo(sunX-180,H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // rolling wave lines (perspective)
+    for(let i=0;i<wavesCount;i++){
+      const p = i/(wavesCount-1);
+      const y = horizonY + Math.pow(p,1.7)*(H-horizonY);
+      const amp = 3 + p*p*waveEnergy*22;
+      const freq = 0.006 + p*0.01;
+      const speed = 0.4 + p*1.2 + windEnergy*0.02;
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      for(let x=0;x<=W;x+=6){
+        const yy = y + Math.sin(x*freq + t*speed + i)*amp*0.4 +
+                       Math.sin(x*freq*0.5 + t*speed*0.7 + i*2)*amp*0.6;
+        ctx.lineTo(x,yy);
+      }
+      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+      const alpha = 0.15 + p*0.5;
+      const shade = Math.floor(30 + p*90);
+      ctx.fillStyle = `rgba(${shade+10},${shade+55},${shade+95},${alpha})`;
+      ctx.fill();
+
+      // whitecap crest on nearer waves
+      if(p>0.4 && waveEnergy>0.7){
+        ctx.beginPath();
+        for(let x=0;x<=W;x+=6){
+          const crest = y + Math.sin(x*freq + t*speed + i)*amp*0.4 +
+                            Math.sin(x*freq*0.5 + t*speed*0.7 + i*2)*amp*0.6;
+          // stochastic foam
+          const foam = Math.sin(x*0.03 + t*speed*2 + i*7);
+          if(foam > 1-Math.min(0.7,(waveEnergy-0.5)*0.4)) ctx.rect(x,crest-1,2,1.5);
+        }
+        ctx.fillStyle = `rgba(255,255,255,${0.15 + p*0.35})`;
+        ctx.fill();
+      }
+    }
+
+    // silhouette headland (some spots)
+    if(opts.headland){
+      ctx.fillStyle = 'rgba(6,12,22,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(W, horizonY-8);
+      ctx.quadraticCurveTo(W*0.85, horizonY-38, W*0.7, horizonY-4);
+      ctx.lineTo(W,horizonY); ctx.closePath(); ctx.fill();
+    }
+
+    // foreground shore
+    ctx.fillStyle = 'rgba(4,10,20,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=8){
+      const y = H - 12 + Math.sin(x*0.02 + t*1.5)*3;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+  return anim;
+}
+function stopAllAnimations(){
+  activeAnimations.forEach(a=>a.stopped=true);
+  activeAnimations.clear();
+}
+function getTOD(tz){
+  try{
+    const s = new Date().toLocaleString("en-US", {timeZone:tz, hour12:false, hour:'numeric', minute:'numeric'});
+    const [h,m] = s.split(":").map(Number);
+    return (h + m/60) / 24; // 0..1
+  }catch(e){ return (new Date().getHours()+new Date().getMinutes()/60)/24; }
+}
+function todPalette(t){
+  // dawn (0.2), day (0.5), dusk (0.8), night (0/1)
+  if(t < 0.22 || t > 0.9){ // night
+    return {
+      sky:['#03060f','#05091a','#0a1330'],
+      sea:['#0a1730','#050b1c','#020610'],
+      sun:'rgba(220,230,255,1)',
+      cloud:'#0e1a35',
+      haze:'rgba(10,20,45,0.6)'
+    };
+  }
+  if(t < 0.32){ // dawn
+    return {
+      sky:['#0b1740','#7a3661','#f0955a','#fbc27b'],
+      sea:['#193758','#0a1e33','#050e1e'],
+      sun:'rgba(255,180,120,1)',
+      cloud:'#8d4972',
+      haze:'rgba(240,150,90,0.35)'
+    };
+  }
+  if(t < 0.7){ // day
+    return {
+      sky:['#67c5f5','#a8dcf4','#dff2fa'],
+      sea:['#2e8dbf','#155f8e','#0a3a5b','#052235'],
+      sun:'rgba(255,240,200,1)',
+      cloud:'#ffffff',
+      haze:'rgba(200,220,235,0.55)'
+    };
+  }
+  if(t < 0.85){ // dusk / golden hour
+    return {
+      sky:['#2a1a5a','#a44a5a','#f27f4b','#ffcf75'],
+      sea:['#3a476e','#1c2d4e','#0b1a30','#050d1c'],
+      sun:'rgba(255,150,90,1)',
+      cloud:'#8d5474',
+      haze:'rgba(255,140,80,0.4)'
+    };
+  }
+  // late evening
+  return {
+    sky:['#0a1130','#1b2a58','#3c2f60'],
+    sea:['#132444','#081428','#040b18'],
+    sun:'rgba(255,220,180,0.8)',
+    cloud:'#25315c',
+    haze:'rgba(20,30,60,0.6)'
+  };
+}
+
+/* =========================================================
+   ROUTER
+   ========================================================= */
+function parseHash(){
+  const h = location.hash.replace(/^#\/?/, '');
+  const parts = h.split('/').filter(Boolean);
+  return {name: parts[0]||'home', arg: parts[1]||''};
+}
+window.addEventListener('hashchange', render);
+window.addEventListener('load', render);
+
+function render(){
+  stopAllAnimations();
+  const {name, arg} = parseHash();
+  document.querySelectorAll('.nav-links a').forEach(a=>{
+    a.classList.toggle('active', a.getAttribute('data-nav')===name || (name==='spot' && a.getAttribute('data-nav')==='home'));
+  });
+  window.scrollTo({top:0,behavior:'instant'});
+  switch(name){
+    case 'spot': renderSpot(arg); break;
+    case 'cams': renderCams(); break;
+    case 'forecast': renderForecast(); break;
+    case 'travel': renderTravel(); break;
+    case 'sessions': renderSessions(); break;
+    default: renderHome();
+  }
+}
+
+/* =========================================================
+   FAVORITES
+   ========================================================= */
+const FAVS_KEY = 'swellcast:favs';
+function getFavs(){ try{ return JSON.parse(localStorage.getItem(FAVS_KEY))||[]; }catch(e){return [];} }
+function toggleFav(id){
+  const f = new Set(getFavs());
+  if(f.has(id)) f.delete(id); else f.add(id);
+  localStorage.setItem(FAVS_KEY, JSON.stringify([...f]));
+}
+
+/* =========================================================
+   VIEWS — HOME
+   ========================================================= */
+async function renderHome(){
+  const featuredId = getFavs()[0] || "pipeline";
+  const featured = SPOTS.find(s=>s.id===featuredId) || SPOTS[0];
+
+  app().innerHTML = `
+    <div class="notice">
+      <div class="n-icon">✨</div>
+      <p><strong>All premium features active.</strong> 16-day forecasts, HD cams, session replays, and AI reports are unlocked for you.</p>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-head" style="margin-top:0">
+          <h2>Featured Spot</h2>
+          <a href="#/spot/${featured.id}">View forecast →</a>
+        </div>
+        <div class="card">
+          <div class="cam" id="featured-cam">
+            <canvas></canvas>
+            <div class="cam-overlay">
+              <div class="cam-top">
+                <div class="cam-live"><span class="live-dot"></span> LIVE</div>
+                <div class="cam-hd">HD PREMIUM</div>
+              </div>
+              <div class="cam-btm">
+                <div class="cam-name">${featured.name}<small>${featured.region}</small></div>
+                <div class="cam-actions">
+                  <button onclick="location.hash='#/spot/${featured.id}'">Open →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="featured-conditions" class="conditions-strip">
+            ${Array(6).fill('<div><div class="k">—</div><div class="v">—</div></div>').join('')}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-head" style="margin-top:0">
+          <h2>Your Spots</h2>
+          <a href="#/cams">All cams →</a>
+        </div>
+        <div id="favs-list" class="grid" style="grid-template-columns:1fr">
+          ${getFavs().length===0
+            ? `<div class="card card-pad" style="color:var(--mute);text-align:center">
+                No favorites yet. Tap the ⭐ on any spot to pin it here.
+              </div>`
+            : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Popular Now</h2>
+      <a href="#/cams">See all →</a>
+    </div>
+    <div id="popular-grid" class="grid g-4"></div>
+
+    <div class="section-head">
+      <h2>Regional Forecast</h2>
+      <a href="#/forecast">Long-range →</a>
+    </div>
+    <div id="region-grid" class="grid g-3"></div>
+  `;
+
+  // featured cam + conditions
+  const feat = await loadSpotForecast(featured);
+  paintCam($('#featured-cam canvas'), featured, feat);
+  paintConditionsStrip($('#featured-conditions'), featured, feat);
+
+  // favorites
+  const favIds = getFavs();
+  const favEl = $('#favs-list');
+  for(const id of favIds){
+    const s = SPOTS.find(x=>x.id===id); if(!s) continue;
+    favEl.insertAdjacentHTML('beforeend', spotMiniCardShell(s));
+    const data = await loadSpotForecast(s);
+    hydrateSpotCard(s, data);
+  }
+
+  // popular
+  const popularIds = ["pipeline","malibu","uluwatu","snapper","hossegor","nazare","jbay","teahupoo"];
+  const pop = $('#popular-grid');
+  popularIds.forEach(id=>{
+    const s = SPOTS.find(x=>x.id===id);
+    pop.insertAdjacentHTML('beforeend', spotCardShell(s));
+  });
+  for(const id of popularIds){
+    const s = SPOTS.find(x=>x.id===id);
+    const data = await loadSpotForecast(s);
+    hydrateSpotCard(s, data);
+  }
+
+  // regions
+  const rgrid = $('#region-grid');
+  REGIONS.slice(0,6).forEach(r=>{
+    rgrid.insertAdjacentHTML('beforeend', `
+      <div class="card card-pad">
+        <div class="card-title">${r.name}</div>
+        <div id="region-${r.id}" style="font-size:14px;color:var(--mute)">Loading…</div>
+      </div>
+    `);
+  });
+  for(const r of REGIONS.slice(0,6)){
+    const rows = [];
+    for(const sid of r.spots){
+      const s = SPOTS.find(x=>x.id===sid); if(!s) continue;
+      const d = await loadSpotForecast(s);
+      const i = d.marine ? nowIndex(d.marine.hourly.time) : 0;
+      const wave = d.marine?.hourly?.wave_height?.[i];
+      const wind = d.weather?.hourly?.wind_speed_10m?.[i];
+      const windD = d.weather?.hourly?.wind_direction_10m?.[i];
+      const swellD = d.marine?.hourly?.swell_wave_direction?.[i];
+      const rate = rateConditions(s, wave, swellD, wind?mps_to_kts(wind):null, windD);
+      rows.push(`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+        <a href="#/spot/${s.id}" style="color:#fff;font-weight:600">${s.name}</a>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="color:var(--blue);font-weight:700">${wave!=null?m_to_ft(wave).toFixed(1):'—'}ft</span>
+          <span class="chip ${rate.cls}">${rate.label}</span>
+        </div>
+      </div>`);
+    }
+    document.getElementById(`region-${r.id}`).innerHTML = rows.join('');
+  }
+}
+
+function spotCardShell(s){
+  return `
+    <div class="card spot-card" onclick="location.hash='#/spot/${s.id}'">
+      <div class="cam" data-spot="${s.id}"><canvas></canvas>
+        <div class="cam-overlay">
+          <div class="cam-top"><div class="cam-live"><span class="live-dot"></span> LIVE</div><div class="cam-hd">HD</div></div>
+        </div>
+      </div>
+      <div class="body">
+        <h3>${s.name}</h3>
+        <div class="region">${s.region}</div>
+        <div class="cond">
+          <div class="wave" data-wave="${s.id}">—</div>
+          <div data-rate="${s.id}"><span class="chip">—</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+function spotMiniCardShell(s){
+  return `
+    <div class="card" style="display:flex;overflow:hidden;cursor:pointer" onclick="location.hash='#/spot/${s.id}'">
+      <div style="width:110px;flex-shrink:0" class="cam" data-spot="${s.id}"><canvas></canvas></div>
+      <div style="padding:10px 14px;flex:1">
+        <div style="font-weight:700">${s.name}</div>
+        <div style="color:var(--mute);font-size:12px">${s.region}</div>
+        <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+          <div class="wave" style="color:var(--blue);font-weight:800" data-wave="${s.id}">—</div>
+          <div data-rate="${s.id}"><span class="chip">—</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+function hydrateSpotCard(s, data){
+  const canvas = document.querySelector(`.cam[data-spot="${s.id}"] canvas`);
+  paintCam(canvas, s, data);
+  const i = data.marine ? nowIndex(data.marine.hourly.time) : 0;
+  const wave = data.marine?.hourly?.wave_height?.[i];
+  const period = data.marine?.hourly?.wave_period?.[i];
+  const swellD = data.marine?.hourly?.swell_wave_direction?.[i];
+  const wind = data.weather?.hourly?.wind_speed_10m?.[i];
+  const windD = data.weather?.hourly?.wind_direction_10m?.[i];
+  const rate = rateConditions(s, wave, swellD, wind?mps_to_kts(wind):null, windD);
+  document.querySelectorAll(`[data-wave="${s.id}"]`).forEach(el=>{
+    el.textContent = wave!=null ? `${m_to_ft(wave).toFixed(1)} ft` : '—';
+  });
+  document.querySelectorAll(`[data-rate="${s.id}"]`).forEach(el=>{
+    el.innerHTML = `<span class="chip ${rate.cls}">${rate.label}</span>`;
+  });
+}
+function paintCam(canvas, spot, data){
+  if(!canvas) return;
+  const i = data?.marine ? nowIndex(data.marine.hourly.time) : 0;
+  const wave = data?.marine?.hourly?.wave_height?.[i] ?? 1;
+  const wind = data?.weather?.hourly?.wind_speed_10m?.[i];
+  const kts = wind!=null ? mps_to_kts(wind) : 8;
+  startOceanCam(canvas, {waveH:wave, windKts:kts, tz:spot.tz, headland: /point|reef/i.test(spot.type)});
+}
+function paintConditionsStrip(el, spot, data){
+  if(!data.marine || !data.weather){
+    el.innerHTML = '<div class="card-pad" style="grid-column:1/-1;color:var(--mute)">Conditions unavailable.</div>';
+    return;
+  }
+  const i = nowIndex(data.marine.hourly.time);
+  const wave = data.marine.hourly.wave_height[i];
+  const period = data.marine.hourly.wave_period[i];
+  const swellDir = data.marine.hourly.swell_wave_direction[i];
+  const swellH = data.marine.hourly.swell_wave_height[i];
+  const swellP = data.marine.hourly.swell_wave_period[i];
+  const seaTemp = data.marine.hourly.sea_surface_temperature[i];
+  const wi = nowIndex(data.weather.hourly.time);
+  const wind = data.weather.hourly.wind_speed_10m[wi];
+  const windD = data.weather.hourly.wind_direction_10m[wi];
+  const gust = data.weather.hourly.wind_gusts_10m?.[wi];
+  const airT = data.weather.hourly.temperature_2m[wi];
+  const rate = rateConditions(spot, wave, swellDir, mps_to_kts(wind), windD);
+
+  el.innerHTML = `
+    <div>
+      <div class="k">Surf</div>
+      <div class="v">${m_to_ft(wave).toFixed(1)}<span class="u"> ft</span></div>
+      <div class="chip ${rate.cls}" style="margin-top:4px">${rate.label} · ${rate.score.toFixed(1)}</div>
+    </div>
+    <div>
+      <div class="k">Swell</div>
+      <div class="v">${m_to_ft(swellH).toFixed(1)}<span class="u"> ft @ ${swellP.toFixed(0)}s</span></div>
+      <div class="u" style="margin-top:4px">${compass(swellDir)} · ${swellDir.toFixed(0)}°</div>
+    </div>
+    <div>
+      <div class="k">Wind</div>
+      <div class="v">${mps_to_kts(wind).toFixed(0)}<span class="u"> kts</span></div>
+      <div class="u" style="margin-top:4px">${compass(windD)} · gust ${gust?mps_to_kts(gust).toFixed(0):'—'}</div>
+    </div>
+    <div>
+      <div class="k">Period</div>
+      <div class="v">${period.toFixed(0)}<span class="u"> s</span></div>
+      <div class="u" style="margin-top:4px">${period>=13?'Groundswell':period>=9?'Mid-period':'Windswell'}</div>
+    </div>
+    <div>
+      <div class="k">Water</div>
+      <div class="v">${cToF(seaTemp).toFixed(0)}°<span class="u">F</span></div>
+      <div class="u" style="margin-top:4px">${seaTemp.toFixed(0)}°C · ${wetsuitFor(seaTemp)}</div>
+    </div>
+    <div>
+      <div class="k">Air</div>
+      <div class="v">${cToF(airT).toFixed(0)}°<span class="u">F</span></div>
+      <div class="u" style="margin-top:4px">${airT.toFixed(0)}°C</div>
+    </div>`;
+}
+function wetsuitFor(t){
+  if(t>=24) return "Boardshorts";
+  if(t>=20) return "Springsuit";
+  if(t>=17) return "3/2 mm";
+  if(t>=13) return "4/3 mm";
+  if(t>=9)  return "5/4 + hood";
+  return "6/5 + hood";
+}
+
+/* =========================================================
+   VIEWS — SPOT DETAIL
+   ========================================================= */
+async function renderSpot(id){
+  const spot = SPOTS.find(s=>s.id===id);
+  if(!spot){ app().innerHTML = `<div class="card card-pad">Spot not found. <a href="#/">Home</a></div>`; return; }
+
+  const isFav = getFavs().includes(spot.id);
+  app().innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:12px">
+      <div>
+        <div style="color:var(--mute);font-size:13px">${spot.country} · ${spot.region}</div>
+        <h1 class="h1" style="margin-top:4px">${spot.name}
+          <span class="fav ${isFav?'on':''}" id="fav-btn" title="Favorite">★</span>
+        </h1>
+        <div class="tag-row">
+          <span class="chip">${spot.type}</span>
+          <span class="chip">${spot.difficulty}</span>
+          <span class="chip">Faces ${compass(spot.facing)}</span>
+        </div>
+      </div>
+      <div>
+        <button class="btn ghost" onclick="location.hash='#/cams'">← All spots</button>
+      </div>
+    </div>
+
+    <div class="spot-hero">
+      <div class="cam" id="hero-cam">
+        <canvas></canvas>
+        <div class="cam-overlay">
+          <div class="cam-top">
+            <div class="cam-live"><span class="live-dot"></span> LIVE HD</div>
+            <div class="cam-hd">CAM REWINDS · PREMIUM</div>
+          </div>
+          <div class="cam-btm">
+            <div class="cam-name">${spot.name}<small>Rendered from live conditions · <span id="local-time"></span></small></div>
+            <div class="cam-actions">
+              <button onclick="alert('Rewind: last 24h of cam footage streaming from Swellcast archive (premium feature demo).')">⏮ Rewind</button>
+              <button onclick="alert('Multi-angle camera bank (demo).')">🎥 Angles</button>
+              <button onclick="location.href='https://www.google.com/search?q=${encodeURIComponent(spot.name+' live surf cam')}'">Watch external ↗</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="conditions-strip" class="conditions-strip">
+        ${Array(6).fill('<div><div class="k">—</div><div class="v">—</div></div>').join('')}
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div id="ai-report-slot"></div>
+
+    <div class="spacer"></div>
+
+    <div class="section-head">
+      <h2>16-Day Forecast <span class="chip premium" style="margin-left:8px">Premium</span></h2>
+      <div style="color:var(--mute);font-size:13px">Long-range · updates every 6h</div>
+    </div>
+    <div id="days" class="days"></div>
+
+    <div class="spacer"></div>
+
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <h3 style="margin:0;font-size:16px">Wave height & period</h3>
+              <div class="chart-legend" style="padding:0">
+                <span><span class="sw" style="background:var(--blue)"></span>Face height</span>
+                <span><span class="sw" style="background:var(--purple)"></span>Period</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrap"><svg id="chart-wave" class="chart"></svg></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <h3 style="margin:0;font-size:16px">Wind speed & gusts</h3>
+          </div>
+          <div class="chart-wrap"><svg id="chart-wind" class="chart"></svg></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <h3 style="margin:0;font-size:16px">Tide</h3>
+          </div>
+          <div class="chart-wrap"><svg id="chart-tide" class="chart"></svg></div>
+          <div id="tide-labels" class="tide-labels"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-pad">
+          <div class="card-title">Swell trains</div>
+          <div id="swell-trains"></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="card card-pad">
+          <div class="card-title">Best windows (next 72h)</div>
+          <div id="best-windows"></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="card card-pad">
+          <div class="card-title">Nearby buoys</div>
+          <div id="nearby-buoys" style="font-size:13px;color:var(--mute);line-height:1.7">
+            NDBC-46232 · 4.2 mi · 4.6 ft @ 14s WSW<br>
+            NDBC-46242 · 12.8 mi · 4.1 ft @ 13s W<br>
+            CDIP-201 · 22.1 mi · 5.0 ft @ 15s SW<br>
+            <span class="chip premium" style="margin-top:6px">Full buoy history unlocked</span>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <div class="card card-pad">
+          <div class="card-title">Sun & tide today</div>
+          <div id="sun-info" style="font-size:14px;line-height:1.8"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('fav-btn').addEventListener('click', ()=>{
+    toggleFav(spot.id);
+    document.getElementById('fav-btn').classList.toggle('on');
+  });
+
+  const data = await loadSpotForecast(spot);
+  paintCam($('#hero-cam canvas'), spot, data);
+  paintConditionsStrip($('#conditions-strip'), spot, data);
+  document.getElementById('local-time').textContent =
+    new Date().toLocaleTimeString('en-US',{timeZone:spot.tz, hour:'numeric', minute:'2-digit'}) + ' local';
+
+  if(data.marine && data.weather){
+    renderDays(spot, data);
+    renderWaveChart(spot, data);
+    renderWindChart(spot, data);
+    renderTideChart(spot, data);
+    renderSwellTrains(spot, data);
+    renderBestWindows(spot, data);
+    renderAIReport(spot, data);
+    renderSunInfo(spot, data);
+  } else {
+    document.getElementById('days').innerHTML = '<div class="card-pad">Forecast temporarily unavailable.</div>';
+  }
+}
+
+function renderDays(spot, data){
+  const daily = data.marine.daily;
+  const el = document.getElementById('days');
+  const todayISO = new Date().toISOString().slice(0,10);
+  el.innerHTML = daily.time.map((day, i)=>{
+    const wave = daily.wave_height_max[i];
+    const period = daily.wave_period_max[i];
+    const dir = daily.wave_direction_dominant[i];
+    // approximate midday wind for the day from hourly
+    const dayIdxStart = data.weather.hourly.time.findIndex(t=>t.startsWith(day));
+    let wind=null, windDir=null;
+    if(dayIdxStart>=0){
+      const midday = dayIdxStart + 12;
+      wind = data.weather.hourly.wind_speed_10m[midday];
+      windDir = data.weather.hourly.wind_direction_10m[midday];
+    }
+    const rate = rateConditions(spot, wave, dir, wind?mps_to_kts(wind):null, windDir);
+    const d = new Date(day);
+    const dow = d.toLocaleDateString('en-US',{weekday:'short'});
+    const dt = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `<div class="day ${day===todayISO?'today':''}" onclick="scrollToChart()" style="cursor:pointer">
+      <div class="dow">${dow}</div>
+      <div class="dt">${dt}</div>
+      <div class="wv">${m_to_ft(wave).toFixed(1)}<span style="font-size:11px;color:var(--mute)"> ft</span></div>
+      <div style="font-size:11px;color:var(--mute);margin-top:2px">${period.toFixed(0)}s ${compass(dir)}</div>
+      <div class="rating-bar"><div style="width:${rate.score*10}%;background:${rateColor(rate.cls)}"></div></div>
+      <div style="margin-top:6px"><span class="chip ${rate.cls}">${rate.label}</span></div>
+    </div>`;
+  }).join('');
+}
+function rateColor(cls){
+  return cls==='epic'?'var(--brand)':cls==='good'?'var(--ok)':cls==='fair'?'var(--warn)':'var(--bad)';
+}
+window.scrollToChart = ()=> document.getElementById('chart-wave').scrollIntoView({behavior:'smooth',block:'center'});
+
+/* -------- SVG Charts -------- */
+function renderWaveChart(spot, data){
+  const svg = document.getElementById('chart-wave');
+  const h = data.marine.hourly;
+  const N = Math.min(24*7, h.time.length);
+  const times = h.time.slice(0, N);
+  const wave = h.wave_height.slice(0, N).map(v=>m_to_ft(v));
+  const period = h.wave_period.slice(0, N);
+  drawDualChart(svg, times, wave, period, {
+    color1:'var(--blue)', color2:'var(--purple)',
+    y1Suffix:'ft', y2Suffix:'s',
+    fill:true, spotTZ:spot.tz
+  });
+}
+function renderWindChart(spot, data){
+  const svg = document.getElementById('chart-wind');
+  const h = data.weather.hourly;
+  const N = Math.min(24*7, h.time.length);
+  const times = h.time.slice(0, N);
+  const wind = h.wind_speed_10m.slice(0, N).map(mps_to_kts);
+  const gust = h.wind_gusts_10m?.slice(0, N).map(mps_to_kts) || wind.map(x=>x*1.25);
+  drawDualChart(svg, times, wind, gust, {
+    color1:'var(--teal)', color2:'var(--warn)',
+    y1Suffix:'kts', y2Suffix:'kts',
+    fill:false, spotTZ:spot.tz, dirData: h.wind_direction_10m.slice(0,N)
+  });
+}
+function renderTideChart(spot, data){
+  const svg = document.getElementById('chart-tide');
+  const h = data.marine.hourly;
+  const N = Math.min(48, h.time.length);
+  const times = h.time.slice(0, N);
+  const tide = h.sea_level_height_msl.slice(0, N);
+  drawTideChart(svg, times, tide, spot.tz);
+  // hi/lo labels
+  const extrema = [];
+  for(let i=1;i<tide.length-1;i++){
+    if((tide[i]>tide[i-1]&&tide[i]>tide[i+1]) || (tide[i]<tide[i-1]&&tide[i]<tide[i+1])){
+      extrema.push({i, v:tide[i], hi:tide[i]>tide[i-1]});
+    }
+  }
+  document.getElementById('tide-labels').innerHTML = extrema.slice(0,4).map(x=>{
+    const t = new Date(times[x.i]).toLocaleTimeString('en-US',{timeZone:spot.tz,hour:'numeric',minute:'2-digit'});
+    return `<div><b style="color:${x.hi?'var(--blue)':'var(--teal)'}">${x.hi?'HI':'LO'}</b> ${t} · ${(x.v*3.281).toFixed(1)}ft</div>`;
+  }).join('');
+}
+function drawDualChart(svg, times, s1, s2, opts){
+  const W=800, H=180, pad={l:36,r:36,t:14,b:24};
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.innerHTML = '';
+  const iw = W-pad.l-pad.r, ih = H-pad.t-pad.b;
+  const max1 = Math.max(...s1)*1.15, min1 = 0;
+  const max2 = Math.max(...s2)*1.15, min2 = 0;
+  const x = i => pad.l + (i/(times.length-1))*iw;
+  const y1 = v => pad.t + ih - ((v-min1)/(max1-min1))*ih;
+  const y2 = v => pad.t + ih - ((v-min2)/(max2-min2))*ih;
+
+  // grid
+  for(let g=0; g<=4; g++){
+    const yy = pad.t + (g/4)*ih;
+    svg.insertAdjacentHTML('beforeend',
+      `<line x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="#1a2647" stroke-dasharray="2 4"/>`);
+    svg.insertAdjacentHTML('beforeend',
+      `<text x="6" y="${yy+3}" font-size="10" fill="#64748b">${(max1-(g/4)*(max1-min1)).toFixed(1)}</text>`);
+    svg.insertAdjacentHTML('beforeend',
+      `<text x="${W-32}" y="${yy+3}" font-size="10" fill="#64748b">${(max2-(g/4)*(max2-min2)).toFixed(0)}</text>`);
+  }
+  // day dividers
+  let lastDay = '';
+  for(let i=0;i<times.length;i++){
+    const d = new Date(times[i]);
+    const day = d.toLocaleDateString('en-US',{weekday:'short',day:'numeric',timeZone:opts.spotTZ});
+    if(day!==lastDay){
+      const xx = x(i);
+      if(lastDay!=='')
+        svg.insertAdjacentHTML('beforeend',
+          `<line x1="${xx}" y1="${pad.t}" x2="${xx}" y2="${H-pad.b}" stroke="#22304f"/>`);
+      svg.insertAdjacentHTML('beforeend',
+        `<text x="${xx+4}" y="${H-8}" font-size="10" fill="#94a3b8">${day}</text>`);
+      lastDay = day;
+    }
+  }
+  // area for s1
+  if(opts.fill){
+    let d = `M ${x(0)} ${y1(s1[0])}`;
+    for(let i=1;i<s1.length;i++) d += ` L ${x(i)} ${y1(s1[i])}`;
+    d += ` L ${x(s1.length-1)} ${pad.t+ih} L ${x(0)} ${pad.t+ih} Z`;
+    svg.insertAdjacentHTML('beforeend',
+      `<path d="${d}" fill="${opts.color1}" opacity=".15"/>`);
+  }
+  // line s1
+  {
+    let d = `M ${x(0)} ${y1(s1[0])}`;
+    for(let i=1;i<s1.length;i++) d += ` L ${x(i)} ${y1(s1[i])}`;
+    svg.insertAdjacentHTML('beforeend',
+      `<path d="${d}" fill="none" stroke="${opts.color1}" stroke-width="2"/>`);
+  }
+  // line s2
+  {
+    let d = `M ${x(0)} ${y2(s2[0])}`;
+    for(let i=1;i<s2.length;i++) d += ` L ${x(i)} ${y2(s2[i])}`;
+    svg.insertAdjacentHTML('beforeend',
+      `<path d="${d}" fill="none" stroke="${opts.color2}" stroke-width="1.5" stroke-dasharray="4 3"/>`);
+  }
+  // wind arrows sample
+  if(opts.dirData){
+    for(let i=0;i<opts.dirData.length;i+=12){
+      const xx = x(i), yy = y1(s1[i])-10;
+      const rot = opts.dirData[i]+180;
+      svg.insertAdjacentHTML('beforeend',
+        `<g transform="translate(${xx} ${yy}) rotate(${rot})">
+          <path d="M 0 -5 L 3 4 L 0 2 L -3 4 Z" fill="${opts.color1}" opacity=".85"/></g>`);
+    }
+  }
+  // now line
+  const nowIdx = nowIndex(times);
+  const nx = x(nowIdx);
+  svg.insertAdjacentHTML('beforeend',
+    `<line x1="${nx}" y1="${pad.t}" x2="${nx}" y2="${H-pad.b}" stroke="var(--brand)" stroke-width="1.5" stroke-dasharray="3 3"/>
+     <text x="${nx+4}" y="${pad.t+11}" font-size="10" fill="var(--brand)" font-weight="700">NOW</text>`);
+}
+function drawTideChart(svg, times, tide, tz){
+  const W=800, H=180, pad={l:36,r:16,t:14,b:24};
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.innerHTML = '';
+  const iw = W-pad.l-pad.r, ih = H-pad.t-pad.b;
+  const mn = Math.min(...tide), mx = Math.max(...tide);
+  const range = mx-mn || 1;
+  const x = i => pad.l + (i/(times.length-1))*iw;
+  const y = v => pad.t + ih - ((v-mn)/range)*ih;
+  // day labels
+  let lastDay='';
+  for(let i=0;i<times.length;i++){
+    const d = new Date(times[i]);
+    const day = d.toLocaleDateString('en-US',{weekday:'short',day:'numeric',timeZone:tz});
+    if(day!==lastDay){
+      const xx = x(i);
+      if(lastDay!=='')
+        svg.insertAdjacentHTML('beforeend',
+          `<line x1="${xx}" y1="${pad.t}" x2="${xx}" y2="${H-pad.b}" stroke="#22304f"/>`);
+      svg.insertAdjacentHTML('beforeend',
+        `<text x="${xx+4}" y="${H-8}" font-size="10" fill="#94a3b8">${day}</text>`);
+      lastDay=day;
+    }
+  }
+  // area
+  let d = `M ${x(0)} ${y(tide[0])}`;
+  for(let i=1;i<tide.length;i++) d += ` L ${x(i)} ${y(tide[i])}`;
+  d += ` L ${x(tide.length-1)} ${pad.t+ih} L ${x(0)} ${pad.t+ih} Z`;
+  svg.insertAdjacentHTML('beforeend',
+    `<path d="${d}" fill="url(#tide-grad)"/>`);
+  svg.insertAdjacentHTML('afterbegin',
+    `<defs><linearGradient id="tide-grad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+     </linearGradient></defs>`);
+  // line
+  let d2 = `M ${x(0)} ${y(tide[0])}`;
+  for(let i=1;i<tide.length;i++) d2 += ` L ${x(i)} ${y(tide[i])}`;
+  svg.insertAdjacentHTML('beforeend',
+    `<path d="${d2}" fill="none" stroke="#38bdf8" stroke-width="2"/>`);
+  // now line
+  const nowIdx = nowIndex(times);
+  const nx = x(nowIdx);
+  svg.insertAdjacentHTML('beforeend',
+    `<line x1="${nx}" y1="${pad.t}" x2="${nx}" y2="${H-pad.b}" stroke="var(--brand)" stroke-width="1.5" stroke-dasharray="3 3"/>
+     <circle cx="${nx}" cy="${y(tide[nowIdx])}" r="4" fill="var(--brand)"/>`);
+}
+
+function renderSwellTrains(spot, data){
+  const h = data.marine.hourly;
+  const i = nowIndex(h.time);
+  const rows = [
+    {label:"Primary swell", ht:h.swell_wave_height[i], pd:h.swell_wave_period[i], dir:h.swell_wave_direction[i], color:'var(--blue)'},
+    {label:"Wind swell",    ht:h.wind_wave_height[i],  pd:h.wind_wave_period[i],  dir:null, color:'var(--teal)'},
+    {label:"Combined seas", ht:h.wave_height[i],       pd:h.wave_period[i],       dir:h.wave_direction[i], color:'var(--purple)'},
+  ];
+  document.getElementById('swell-trains').innerHTML = rows.map(r=>`
+    <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="width:12px;height:12px;background:${r.color};border-radius:2px;margin-right:10px"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${r.label}</div>
+        <div style="font-size:12px;color:var(--mute)">${r.dir!=null?compass(r.dir)+' · '+r.dir.toFixed(0)+'°':'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800">${m_to_ft(r.ht).toFixed(1)} ft</div>
+        <div style="font-size:12px;color:var(--mute)">${r.pd.toFixed(0)} s</div>
+      </div>
+    </div>
+  `).join('');
+}
+function renderBestWindows(spot, data){
+  const h = data.marine.hourly, w = data.weather.hourly;
+  const N = Math.min(72, h.time.length);
+  const scored = [];
+  for(let i=0;i<N;i++){
+    const r = rateConditions(spot, h.wave_height[i], h.swell_wave_direction[i],
+      mps_to_kts(w.wind_speed_10m[i]), w.wind_direction_10m[i]);
+    scored.push({i, s:r.score, ...r, time:h.time[i], wave:h.wave_height[i]});
+  }
+  scored.sort((a,b)=>b.s-a.s);
+  const top = scored.slice(0,4);
+  top.sort((a,b)=>a.i-b.i);
+  document.getElementById('best-windows').innerHTML = top.map(t=>{
+    const d = new Date(t.time);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">
+      <div>
+        <div style="font-weight:600">${d.toLocaleDateString('en-US',{weekday:'short', timeZone:spot.tz})} ${d.toLocaleTimeString('en-US',{timeZone:spot.tz,hour:'numeric'})}</div>
+        <div style="font-size:12px;color:var(--mute)">${m_to_ft(t.wave).toFixed(1)}ft surf</div>
+      </div>
+      <span class="chip ${t.cls}">${t.label}</span>
+    </div>`;
+  }).join('');
+}
+function renderAIReport(spot, data){
+  const i = nowIndex(data.marine.hourly.time);
+  const h = data.marine.hourly, w = data.weather.hourly;
+  const wave = h.wave_height[i];
+  const period = h.wave_period[i];
+  const swellDir = h.swell_wave_direction[i];
+  const wind = mps_to_kts(w.wind_speed_10m[i]);
+  const windDir = w.wind_direction_10m[i];
+  const rate = rateConditions(spot, wave, swellDir, wind, windDir);
+  const offshore = (spot.facing+180)%360;
+  const windDiff = Math.abs(((windDir - offshore + 540)%360)-180);
+  const windQual = windDiff<45?'clean offshore':windDiff<90?'cross-offshore':windDiff<135?'cross-shore':'onshore, textured';
+
+  // find next best window
+  let best={s:-1,i:0};
+  for(let j=i;j<Math.min(i+48,h.time.length);j++){
+    const r = rateConditions(spot, h.wave_height[j], h.swell_wave_direction[j],
+      mps_to_kts(w.wind_speed_10m[j]), w.wind_direction_10m[j]);
+    if(r.score>best.s){best={s:r.score,i:j,r};}
+  }
+  const bestTime = new Date(h.time[best.i]).toLocaleString('en-US',{weekday:'short',hour:'numeric',timeZone:spot.tz});
+  const bestSize = m_to_ft(h.wave_height[best.i]).toFixed(1);
+
+  const summary = `${spot.name} is running ${m_to_ft(wave).toFixed(1)}ft at ${period.toFixed(0)} seconds from the ${compass(swellDir)}, with ${wind.toFixed(0)}kt ${compass(windDir)} winds — currently ${windQual}. Overall: <b>${rate.label.toLowerCase()} conditions</b>. The next standout window looks like <b>${bestTime}</b>, when the model has this spot at ${bestSize}ft and rated ${best.r.label.toLowerCase()}. Recommended: ${wetsuitFor(h.sea_surface_temperature[i])}.`;
+
+  document.getElementById('ai-report-slot').innerHTML = `
+    <div class="ai-report">
+      <div class="badge">Swellcast AI · Forecaster Report</div>
+      <h4>Today at ${spot.name.split(',')[0]}</h4>
+      <p>${summary}</p>
+    </div>`;
+}
+function renderSunInfo(spot, data){
+  // approximate sunrise/sunset from day
+  const now = new Date();
+  const el = document.getElementById('sun-info');
+  const localDate = now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',timeZone:spot.tz});
+  const uv = data.weather.hourly.uv_index?.[nowIndex(data.weather.hourly.time)];
+  el.innerHTML = `
+    <div>📅 ${localDate}</div>
+    <div>🌅 Sunrise ~6:12 am · Sunset ~7:48 pm</div>
+    <div>☀️ UV index <b>${uv?.toFixed(1) ?? '—'}</b></div>
+    <div>💨 Time zone: ${spot.tz}</div>
+    <div style="margin-top:8px" class="chip premium">Sunrise/set precision & moon phases unlocked</div>
+  `;
+}
+
+/* =========================================================
+   VIEWS — CAMS
+   ========================================================= */
+async function renderCams(){
+  app().innerHTML = `
+    <h1 class="h1">Cams & Spots</h1>
+    <div class="sub">All ${SPOTS.length} HD cameras · rendered live from current conditions</div>
+    <div class="tabs" id="filter-tabs">
+      <div class="tab active" data-f="all">All</div>
+      <div class="tab" data-f="fav">Favorites</div>
+      <div class="tab" data-f="epic">Firing Now</div>
+      <div class="tab" data-f="beginner">Beginner</div>
+      <div class="tab" data-f="expert">Expert</div>
+    </div>
+    <div id="cams-grid" class="grid g-3"></div>
+  `;
+
+  const grid = document.getElementById('cams-grid');
+  const cache = {};
+
+  async function draw(filter){
+    grid.innerHTML = '';
+    let list = SPOTS.slice();
+    if(filter==='fav'){ const f = new Set(getFavs()); list = list.filter(s=>f.has(s.id)); }
+    if(filter==='beginner') list = list.filter(s=>/beginner|all levels/i.test(s.difficulty));
+    if(filter==='expert') list = list.filter(s=>/expert|advanced/i.test(s.difficulty));
+
+    for(const s of list){
+      grid.insertAdjacentHTML('beforeend', spotCardShell(s));
+    }
+    for(const s of list){
+      cache[s.id] ||= await loadSpotForecast(s);
+      hydrateSpotCard(s, cache[s.id]);
+    }
+    if(filter==='epic'){
+      // hide non-good after hydration
+      setTimeout(()=>{
+        document.querySelectorAll('.spot-card').forEach(card=>{
+          const chip = card.querySelector('.chip');
+          if(chip && !/epic|good/i.test(chip.textContent)) card.style.display='none';
+        });
+      }, 4000);
+    }
+  }
+
+  document.querySelectorAll('#filter-tabs .tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('#filter-tabs .tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      draw(t.dataset.f);
+    });
+  });
+  draw('all');
+}
+
+/* =========================================================
+   VIEWS — FORECAST (regional)
+   ========================================================= */
+async function renderForecast(){
+  app().innerHTML = `
+    <h1 class="h1">Long-Range Forecast</h1>
+    <div class="sub">Regional swell outlook · Premium 16-day models</div>
+    <div class="notice">
+      <div class="n-icon">📈</div>
+      <p>Charts blend GFS-Wave, ECMWF-WAM, and WW3 models. <strong>Long-range confidence</strong> shown per day.</p>
+    </div>
+    <div class="spacer"></div>
+    <div id="region-forecasts" class="grid" style="grid-template-columns:1fr;gap:20px"></div>
+  `;
+
+  const wrap = document.getElementById('region-forecasts');
+  for(const r of REGIONS){
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="card">
+        <div class="card-pad" style="padding-bottom:0;display:flex;justify-content:space-between;align-items:end">
+          <h3 style="margin:0">${r.name}</h3>
+          <div style="color:var(--mute);font-size:12px">${r.spots.length} spot${r.spots.length>1?'s':''}</div>
+        </div>
+        <div class="chart-wrap"><svg id="region-chart-${r.id}" class="chart" style="height:220px"></svg></div>
+        <div id="region-days-${r.id}" class="days" style="padding:0 14px 14px"></div>
+      </div>
+    `);
+  }
+
+  for(const r of REGIONS){
+    // Use first spot as region representative + overlay others
+    const spot = SPOTS.find(x=>x.id===r.spots[0]);
+    const data = await loadSpotForecast(spot);
+    if(!data.marine) continue;
+    // aggregate daily
+    const el = document.getElementById(`region-days-${r.id}`);
+    el.innerHTML = data.marine.daily.time.slice(0,8).map((day,i)=>{
+      const wave = data.marine.daily.wave_height_max[i];
+      const conf = Math.max(20, 100 - i*8);
+      const rate = rateConditions(spot, wave, data.marine.daily.wave_direction_dominant[i], 8, spot.facing+180);
+      const d = new Date(day);
+      return `<div class="day">
+        <div class="dow">${d.toLocaleDateString('en-US',{weekday:'short'})}</div>
+        <div class="wv">${m_to_ft(wave).toFixed(1)}<span style="font-size:10px;color:var(--mute)"> ft</span></div>
+        <div style="font-size:10px;color:var(--mute);margin-top:2px">Conf ${conf}%</div>
+        <div class="rating-bar"><div style="width:${rate.score*10}%;background:${rateColor(rate.cls)}"></div></div>
+      </div>`;
+    }).join('');
+    // multi-spot overlay chart
+    const svg = document.getElementById(`region-chart-${r.id}`);
+    const series = [];
+    for(const sid of r.spots){
+      const s = SPOTS.find(x=>x.id===sid);
+      const d = (sid===spot.id) ? data : await loadSpotForecast(s);
+      if(!d.marine) continue;
+      series.push({name:s.name, times:d.marine.hourly.time.slice(0,24*10),
+        wave:d.marine.hourly.wave_height.slice(0,24*10).map(m_to_ft)});
+    }
+    drawRegionChart(svg, series, spot.tz);
+  }
+}
+function drawRegionChart(svg, series, tz){
+  const W=800,H=220,pad={l:36,r:16,t:14,b:26};
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.innerHTML='';
+  const colors = ['var(--blue)','var(--brand)','var(--teal)','var(--purple)','var(--gold)'];
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  const allVals = series.flatMap(s=>s.wave);
+  const mx = Math.max(...allVals)*1.1;
+  const N = series[0]?.times.length || 0;
+  const x = i => pad.l+(i/(N-1))*iw;
+  const y = v => pad.t+ih-(v/mx)*ih;
+  // grid
+  for(let g=0;g<=4;g++){
+    const yy=pad.t+(g/4)*ih;
+    svg.insertAdjacentHTML('beforeend',
+      `<line x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="#1a2647" stroke-dasharray="2 4"/>
+       <text x="6" y="${yy+3}" font-size="10" fill="#64748b">${(mx-(g/4)*mx).toFixed(1)}</text>`);
+  }
+  // day labels
+  let lastDay='';
+  if(N){
+    for(let i=0;i<N;i++){
+      const d=new Date(series[0].times[i]);
+      const day=d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:tz});
+      if(day!==lastDay){
+        const xx=x(i);
+        if(lastDay!=='') svg.insertAdjacentHTML('beforeend',`<line x1="${xx}" y1="${pad.t}" x2="${xx}" y2="${H-pad.b}" stroke="#22304f"/>`);
+        svg.insertAdjacentHTML('beforeend',`<text x="${xx+3}" y="${H-8}" font-size="10" fill="#94a3b8">${day}</text>`);
+        lastDay=day;
+      }
+    }
+  }
+  series.forEach((s,idx)=>{
+    let d = `M ${x(0)} ${y(s.wave[0])}`;
+    for(let i=1;i<s.wave.length;i++) d += ` L ${x(i)} ${y(s.wave[i])}`;
+    svg.insertAdjacentHTML('beforeend',
+      `<path d="${d}" fill="none" stroke="${colors[idx%colors.length]}" stroke-width="2"/>`);
+    // legend
+    svg.insertAdjacentHTML('beforeend',
+      `<g transform="translate(${pad.l + idx*160} ${pad.t-4})">
+        <rect width="10" height="10" fill="${colors[idx%colors.length]}"/>
+        <text x="14" y="9" font-size="11" fill="#e6ecf5">${s.name.split('(')[0].trim().slice(0,22)}</text>
+       </g>`);
+  });
+}
+
+/* =========================================================
+   VIEWS — TRAVEL
+   ========================================================= */
+function renderTravel(){
+  const packs = [
+    {name:"Indo Boat Charter", spots:["uluwatu","padang-padang","cloudbreak"], img:"#0e5757",
+     desc:"12 days · Bali → Mentawais · Firing SW season"},
+    {name:"North Shore Winter", spots:["pipeline","waikiki","jaws"], img:"#083b40",
+     desc:"10 days · Oahu + Maui · Peak Dec–Feb window"},
+    {name:"European Autumn", spots:["hossegor","ericeira","nazare"], img:"#123057",
+     desc:"14 days · Bay of Biscay pumping"},
+    {name:"Aussie East Coast", spots:["snapper","bells"], img:"#0d4a4a",
+     desc:"7 days · Points, sand, and reefs"},
+    {name:"Central America Chase", spots:["puerto","chicama"], img:"#0d3a4d",
+     desc:"10 days · Long lefts, warm water"},
+    {name:"Africa Adventure", spots:["jbay"], img:"#0a4959",
+     desc:"7 days · Perfect right points"},
+  ];
+  app().innerHTML = `
+    <h1 class="h1">Travel</h1>
+    <div class="sub">Curated surf trips — book with premium concierge</div>
+    <div id="travel-grid" class="grid g-3"></div>
+    <div class="spacer"></div>
+    <div class="notice">
+      <div class="n-icon">🌴</div>
+      <p><strong>Premium Travel unlocked.</strong> Get personalized swell alerts, boat/lodge bookings, and forecaster-led forecast calls.</p>
+    </div>
+  `;
+  const grid = document.getElementById('travel-grid');
+  packs.forEach((p,i)=>{
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="travel-card" data-idx="${i}">
+        <canvas></canvas>
+        <div class="info">
+          <h4>${p.name}</h4>
+          <p>${p.desc}</p>
+        </div>
+      </div>
+    `);
+  });
+  packs.forEach((p,i)=>{
+    const card = grid.querySelector(`[data-idx="${i}"]`);
+    const cv = card.querySelector('canvas');
+    const spot = SPOTS.find(s=>s.id===p.spots[0]);
+    startOceanCam(cv, {waveH:2, windKts:6, tz:spot.tz, headland:true});
+    card.addEventListener('click', ()=>{
+      location.hash = '#/spot/'+p.spots[0];
+    });
+  });
+}
+
+/* =========================================================
+   VIEWS — SESSIONS
+   ========================================================= */
+function renderSessions(){
+  const now = Date.now();
+  const sessions = [
+    {spot:"Lower Trestles", waves:14, longest:32, top:22.3, dist:2.4, avgDrop:1.8, days:1, id:"lower-trestles"},
+    {spot:"Malibu First Point", waves:9, longest:47, top:14.8, dist:1.6, avgDrop:1.1, days:3, id:"malibu"},
+    {spot:"Waikiki (Queens)", waves:22, longest:65, top:12.1, dist:4.1, avgDrop:0.8, days:5, id:"waikiki"},
+    {spot:"Snapper Rocks", waves:11, longest:88, top:19.4, dist:3.2, avgDrop:1.4, days:7, id:"snapper"},
+  ];
+  app().innerHTML = `
+    <h1 class="h1">Sessions</h1>
+    <div class="sub">GPS-tracked surf analytics from your Swellcast Watch <span class="chip premium">Premium</span></div>
+
+    <div class="grid g-4" style="margin-bottom:20px">
+      <div class="card card-pad"><div class="card-title">Total waves (30d)</div>
+        <div style="font-size:30px;font-weight:800">${sessions.reduce((a,s)=>a+s.waves,0)}</div></div>
+      <div class="card card-pad"><div class="card-title">Longest ride</div>
+        <div style="font-size:30px;font-weight:800">88<span style="font-size:14px;color:var(--mute)"> sec</span></div></div>
+      <div class="card card-pad"><div class="card-title">Top speed</div>
+        <div style="font-size:30px;font-weight:800">22.3<span style="font-size:14px;color:var(--mute)"> mph</span></div></div>
+      <div class="card card-pad"><div class="card-title">Distance paddled</div>
+        <div style="font-size:30px;font-weight:800">11.3<span style="font-size:14px;color:var(--mute)"> mi</span></div></div>
+    </div>
+
+    <div class="section-head" style="margin-top:0">
+      <h2>Recent Sessions</h2>
+      <a href="#/">Filter →</a>
+    </div>
+
+    <div id="sessions-list" class="grid" style="grid-template-columns:1fr;gap:12px"></div>
+  `;
+  const el = document.getElementById('sessions-list');
+  sessions.forEach((s,idx)=>{
+    const spot = SPOTS.find(x=>x.id===s.id);
+    const dt = new Date(now - s.days*86400000);
+    el.insertAdjacentHTML('beforeend', `
+      <div class="session-card">
+        <div class="session-thumb" data-idx="${idx}">
+          <canvas></canvas>
+          <div class="play">▶</div>
+        </div>
+        <div class="session-meta">
+          <h4>${s.spot} — ${dt.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'})}</h4>
+          <div style="color:var(--mute);font-size:12px">${dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} · 74 min · 3/2 wetsuit</div>
+          <div class="stats">
+            <span>🌊 ${s.waves} waves</span>
+            <span>⏱ Longest ${s.longest}s</span>
+            <span>⚡ Top ${s.top} mph</span>
+            <span>📏 ${s.dist} mi paddled</span>
+            <span>📉 Avg drop ${s.avgDrop} ft</span>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <span class="chip premium">AI-tagged waves</span>
+            <span class="chip">Cam Sync ✓</span>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+  sessions.forEach((s,idx)=>{
+    const spot = SPOTS.find(x=>x.id===s.id);
+    const cv = document.querySelector(`.session-thumb[data-idx="${idx}"] canvas`);
+    startOceanCam(cv, {waveH:1.5, windKts:6, tz:spot.tz, headland:true});
+  });
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  if(!q){ searchResults.classList.remove('open'); return; }
+  const matches = SPOTS.filter(s=>
+    s.name.toLowerCase().includes(q) ||
+    s.region.toLowerCase().includes(q) ||
+    s.country.toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!matches.length){
+    searchResults.innerHTML = '<div class="sr-item"><span>No spots match.</span></div>';
+  } else {
+    searchResults.innerHTML = matches.map(s=>`
+      <div class="sr-item" data-id="${s.id}">
+        <div>
+          <div style="font-weight:600">${s.name}</div>
+          <small>${s.region} · ${s.country}</small>
+        </div>
+        <small>${s.type}</small>
+      </div>`).join('');
+    searchResults.querySelectorAll('.sr-item[data-id]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        location.hash = '#/spot/'+el.dataset.id;
+        searchInput.value=''; searchResults.classList.remove('open');
+      });
+    });
+  }
+  searchResults.classList.add('open');
+});
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.search')) searchResults.classList.remove('open');
+});
+</script>
+</body>
+</html>

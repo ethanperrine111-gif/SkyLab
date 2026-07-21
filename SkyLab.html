@@ -47,6 +47,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;overflow:hi
 .fc-row{display:flex;align-items:stretch;}
 .fc-cell{width:var(--fcw);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;border-right:1px solid #eef1f5;}
 .fc-cell.now{background:rgba(37,99,235,.08);box-shadow:inset 2px 0 0 #2563eb,inset -2px 0 0 #2563eb;}
+.fc-cell.sel{background:rgba(16,185,129,.14);box-shadow:inset 2px 0 0 #10b981,inset -2px 0 0 #10b981;}
+.fc-cell.now.sel{background:rgba(16,185,129,.14);}
 .fc-cell.mswitch{border-left:2px dashed #93c5fd;}
 .fc-lbl{width:var(--fcl);flex-shrink:0;position:sticky;left:0;z-index:3;background:#f8fafc;border-right:1px solid #d8dee9;display:flex;align-items:center;padding:0 7px;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;}
 /* day header row */
@@ -57,6 +59,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;overflow:hi
 /* hours */
 .fc-r-hr{height:18px;}.fc-r-hr .fc-cell{font-size:10px;font-weight:600;color:#64748b;}
 .fc-r-hr .fc-cell.now{color:#2563eb;font-weight:800;}
+.fc-r-hr .fc-cell.sel{color:#059669;font-weight:800;}
 /* sky icons */
 .fc-r-sky{height:24px;}.fc-r-sky .fc-cell{font-size:14px;}
 /* temperature */
@@ -200,6 +203,12 @@ body.probe-off #ctrl-panel{top:calc(8px + env(safe-area-inset-top,0px));}
 #menu-panel .lp-sec:first-child{margin-top:0;}
 #menu-panel .lp-div{height:1px;background:rgba(0,0,0,.1);margin:8px 0 4px;}
 #menu-panel .edbtn{width:100%;margin-top:5px;}
+#menu-panel .time-row{display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+#menu-panel .time-row input[type=range]{width:100%;accent-color:#10b981;margin:0;}
+#menu-panel .time-lbl{font-size:12px;font-weight:800;color:#065f46;text-align:center;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:4px 6px;line-height:1.25;}
+#menu-panel .time-lbl.live{color:#1d4ed8;background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.28);}
+body.dark #menu-panel .time-lbl{color:#6ee7b7;background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.35);}
+body.dark #menu-panel .time-lbl.live{color:#93c5fd;background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.38);}
 .lp-h2{font-size:10px;color:#777;line-height:1.4;margin-top:7px;}
 /* Editor buttons / inputs (light popup + menu contexts) */
 .edbtn{background:#eff6ff;border:1px solid #2563eb;color:#1d4ed8;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:background .15s;}
@@ -414,6 +423,13 @@ body.dark .ppbio-tag{background:#422006;color:#fde68a;}
       <div class="wv-probe" id="wvprobe">↖ hover map for wind</div>
     </div>
     <div id="menu-panel">
+      <div class="lp-sec">Time</div>
+      <div class="time-row">
+        <div class="time-lbl live" id="time-label">Now (live)</div>
+        <input type="range" id="time-slider" min="0" max="72" step="1" value="0" oninput="onTimeChange(+this.value)" title="Drag to preview conditions at future hours" />
+        <button class="edbtn" id="time-now-btn" onclick="onTimeChange(0)" style="margin-top:0;">⟲ Back to now</button>
+      </div>
+      <div class="lp-div"></div>
       <div class="lp-sec">Display</div>
       <button class="edbtn active" id="probe-btn" onclick="toggleProbe()">🌬 Cursor wind: on</button>
       <button class="edbtn" id="dark-btn" onclick="toggleDark()">🌙 Dark mode</button>
@@ -527,8 +543,11 @@ function d2c(d){return['N','NE','E','SE','S','SW','W','NW'][Math.round(d/45)%8];
 let civilDawnH=null, civilDuskH=null;
 function hourOf(iso){const t=(iso||'').split('T')[1]||'0:0';const p=t.split(':');return (+p[0])+(+p[1]||0)/60;}
 function curHourLocal(){const n=new Date();return n.getHours()+n.getMinutes()/60;}
+// Global "time selector" state — main-menu slider previews conditions at now+N hours.
+let timeOffsetH=0, _selHourLocal=null;
+function effHourLocal(){return _selHourLocal!=null?_selHourLocal:curHourLocal();}
 function isNight(h){if(civilDawnH==null)return false;return h<civilDawnH||h>civilDuskH;}
-function flyS(w,g,c,t,hour){if(isNight(hour==null?curHourLocal():hour))return'no';if(t<35||w>30||g>38)return'no';if(w>18||g>25||c>85)return'caution';return'flyable';}
+function flyS(w,g,c,t,hour){if(isNight(hour==null?effHourLocal():hour))return'no';if(t<35||w>30||g>38)return'no';if(w>18||g>25||c>85)return'caution';return'flyable';}
 function thStr(c,t,w){if(c>80)return'Weak/overcast';if(w>22)return'Rotor risk';if(t>78)return'Strong thermals';if(t>62)return'Good thermals';if(t>50)return'Light thermals';return'Minimal';}
 function hav(a,b,c,d){const R=3958.8,dL=(c-a)*Math.PI/180,dl=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function dest(lat,lon,brg,mi){const R=3958.8,d=mi/R,b=brg*Math.PI/180,la1=lat*Math.PI/180,lo1=lon*Math.PI/180,la2=Math.asin(Math.sin(la1)*Math.cos(d)+Math.cos(la1)*Math.sin(d)*Math.cos(b)),lo2=lo1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la1),Math.cos(d)-Math.sin(la1)*Math.sin(la2));return[la2*180/Math.PI,lo2*180/Math.PI];}
@@ -1258,6 +1277,76 @@ async function fetchHRRRBatch(sites,fallback){
   }
 }
 function setModel(m){currentModel=m;loadWeather();}
+
+// ── Time selector ────────────────────────────────────────────────────────────
+// Snapshots of the raw live weather (with .hourly arrays) so we can rebuild
+// siteWx/slcWx at any offset without re-fetching.
+let siteWxLive={}, slcWxLive=null;
+function snapshotLiveWx(){
+  siteWxLive={};
+  for(const k in siteWx)siteWxLive[k]=siteWx[k];
+  slcWxLive=slcWx;
+}
+// Given a wx object with .hourly time series, return its values at the hour
+// that sits `offsetH` hours after the first present-or-future hour in the series.
+function wxAtOffset(wx,offsetH){
+  if(!wx||!wx.hourly||!wx.hourly.time)return wx;
+  const times=wx.hourly.time;
+  const now=Date.now();
+  let base=-1;
+  for(let i=0;i<times.length;i++){
+    const t=new Date(times[i]).getTime();
+    if(t>=now-30*60*1000){base=i;break;}
+  }
+  if(base<0)base=0;
+  const idx=Math.min(times.length-1,base+offsetH);
+  const h=wx.hourly;
+  const eff={...wx};
+  if(h.wind_speed_10m&&h.wind_speed_10m[idx]!=null)eff.wind=Math.round(h.wind_speed_10m[idx]);
+  if(h.wind_gusts_10m&&h.wind_gusts_10m[idx]!=null)eff.gusts=Math.round(h.wind_gusts_10m[idx]);
+  if(h.wind_direction_10m&&h.wind_direction_10m[idx]!=null)eff.dir=Math.round(h.wind_direction_10m[idx]);
+  if(h.cloud_cover&&h.cloud_cover[idx]!=null)eff.cloud=Math.round(h.cloud_cover[idx]);
+  if(h.temperature_2m&&h.temperature_2m[idx]!=null)eff.temp=Math.round(h.temperature_2m[idx]);
+  // Denver-local clock hour of the picked cell — used to gate day/night correctly.
+  const hStr=(times[idx].split('T')[1]||'0:0').split(':');
+  eff._hourLocal=(+hStr[0])+(+hStr[1]||0)/60;
+  return eff;
+}
+// Format the slider label ("Now (live)" / "+3h · Tue 4p").
+function fmtTimeLabel(off){
+  if(off===0)return'Now (live)';
+  const d=new Date(Date.now()+off*3600*1000);
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const hr=d.getHours();
+  const ap=hr===0?'12a':hr<12?hr+'a':hr===12?'12p':(hr-12)+'p';
+  return`+${off}h · ${days[d.getDay()]} ${ap}`;
+}
+// Slider handler — rebuilds every site's colour, the SLC wind vane, and the
+// forecast strip highlight to reflect the selected hour across the map.
+function onTimeChange(off){
+  off=Math.max(0,Math.min(72,Math.round(+off||0)));
+  timeOffsetH=off;
+  _selHourLocal=off===0?null:(new Date(Date.now()+off*3600*1000)).getHours();
+  const sl=document.getElementById('time-slider');if(sl&&+sl.value!==off)sl.value=off;
+  const lbl=document.getElementById('time-label');
+  if(lbl){lbl.textContent=fmtTimeLabel(off);lbl.classList.toggle('live',off===0);}
+  // Rebuild siteWx at the selected offset from the live snapshots.
+  for(const k in siteWxLive){
+    const live=siteWxLive[k];if(!live)continue;
+    const eff=off===0?{...live}:wxAtOffset(live,off);
+    if(eff){
+      const hLocal=eff._hourLocal!=null?eff._hourLocal:effHourLocal();
+      eff.status=flyS(eff.wind,eff.gusts,eff.cloud,eff.temp,hLocal);
+      siteWx[k]=eff;
+    }
+  }
+  if(slcWxLive){
+    const eff=off===0?{...slcWxLive}:wxAtOffset(slcWxLive,off);
+    if(eff){slcWx=eff;updateVane(slcWx,off===0?'SLC Wind':`SLC · +${off}h`);}
+  }
+  recolorMarkers();
+  if(fcSeries&&fcSeries.length)renderForecast(fcSeries);
+}
 function updateVane(w,label){if(!w)return;if(label)document.getElementById('wvt').textContent=label;document.getElementById('varrow').setAttribute('transform',`rotate(${w.dir},34,34)`);document.getElementById('vspeed').textContent=w.wind+' mph';document.getElementById('vdir').textContent=d2c(w.dir)+' wind';document.getElementById('vgust').textContent='Gust '+(w.gusts??'—')+' mph';const sc=flyS(w.wind,w.gusts??w.wind,w.cloud??0,w.temp??60);document.getElementById('wind-vane').style.borderTopColor=sc==='flyable'?'#22c55e':sc==='caution'?'#facc15':'#ef4444';}
 // Cursor wind probe — debounced + grid-cached current wind wherever the mouse rests.
 let probeTimer=null, probeCache={}, lastProbeKey=null, probeOn=true;
@@ -1388,12 +1477,14 @@ function renderForecast(series){
   // figure out which column is "now" and where the day groups / model switches fall
   let nowIdx=-1;
   series.forEach((e,i)=>{if(nowIdx<0&&new Date(e.t).getTime()>=now-30*60*1000)nowIdx=i;});
+  // "Selected" cell tracks the main-menu time slider so the map + strip agree.
+  const selIdx=timeOffsetH>0&&nowIdx>=0?Math.min(series.length-1,nowIdx+timeOffsetH):-1;
   // group consecutive hours by calendar day → [{label, count}]
   const groups=[];
   series.forEach(e=>{const d=new Date(e.t),key=d.toDateString();const last=groups[groups.length-1];
     if(last&&last.key===key)last.count++;else groups.push({key,count:1,label:`${days[d.getDay()]} ${d.getDate()}`});});
   // ── build each row ──
-  const cell=(i,inner,style)=>`<div class="fc-cell${i===nowIdx?' now':''}${series[i].model!==(series[i-1]||{}).model&&i>0?' mswitch':''}"${style?` style="${style}"`:''}>${inner}</div>`;
+  const cell=(i,inner,style)=>`<div class="fc-cell${i===nowIdx?' now':''}${i===selIdx?' sel':''}${series[i].model!==(series[i-1]||{}).model&&i>0?' mswitch':''}"${style?` style="${style}"`:''}>${inner}</div>`;
   let dayRow='<div class="fc-lbl"></div>',alt=false;
   groups.forEach(g=>{dayRow+=`<div class="fc-day${alt?' alt':''}" style="width:calc(var(--fcw) * ${g.count})">${g.label}</div>`;alt=!alt;});
   let hrRow='<div class="fc-lbl">Hour</div>',skyRow='<div class="fc-lbl">Sky</div>',tempRow='<div class="fc-lbl">Temp °F</div>',
@@ -2053,7 +2144,9 @@ async function loadWeather(){
   }else{
     hideWxBanner();saveWxCache();
   }
-  recolorMarkers();
+  snapshotLiveWx();
+  if(timeOffsetH!==0)onTimeChange(timeOffsetH);
+  else recolorMarkers();
 }
 function recolorMarkers(){
   LAUNCHES.forEach(site=>{const ref=launchElMap[site.id];if(!ref)return;const w=siteWx[site.id];const col={flyable:'#22c55e',caution:'#facc15',no:'#ef4444'}[w?.status||'caution'];const svg=mkLaunchSVG(col,Math.round(w?.dir||0));

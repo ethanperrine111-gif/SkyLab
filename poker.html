@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b3d2e"/>
+<title>Preflop Trainer</title>
+<style>
+  :root{
+    --bg:#0b3d2e; --felt:#0f5138; --felt-2:#0a3628;
+    --ink:#f5f5f4; --muted:#a7c2b6;
+    --card-bg:#fafaf7; --card-ink:#111;
+    --red:#c0392b; --gold:#e6c15a;
+    --good:#22c55e; --bad:#ef4444;
+    --panel:rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  body{
+    background:
+      radial-gradient(ellipse at top,var(--felt) 0%,var(--felt-2) 60%,#071e17 100%);
+    min-height:100dvh;
+    display:flex;flex-direction:column;
+  }
+  header{padding:14px 18px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.02em}
+  header .sub{color:var(--muted);font-size:13px}
+  main{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 16px 24px;gap:18px}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;color:var(--muted);font-size:13px}
+  .stats b{color:var(--ink)}
+  .table-wrap{width:100%;max-width:640px;background:var(--panel);border:1px solid rgba(255,255,255,.08);
+    border-radius:20px;padding:22px 18px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  .situation{text-align:center;color:var(--muted);font-size:14px;margin-bottom:10px}
+  .position-badge{display:inline-block;padding:3px 10px;border-radius:999px;background:#e6c15a;color:#111;font-weight:700;letter-spacing:.06em}
+  .hand{display:flex;justify-content:center;gap:14px;margin:14px 0 20px}
+  .card{
+    width:96px;height:134px;border-radius:12px;background:var(--card-bg);color:var(--card-ink);
+    display:flex;flex-direction:column;justify-content:space-between;padding:8px 10px;
+    box-shadow:0 6px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.06);
+    font-weight:700;
+  }
+  .card.red{color:var(--red)}
+  .card .rank{font-size:26px;line-height:1}
+  .card .suit-top{font-size:22px;line-height:1}
+  .card .suit-big{font-size:52px;align-self:center;line-height:1}
+  .card .bot{transform:rotate(180deg);display:flex;flex-direction:column}
+  .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  button.action{
+    appearance:none;border:0;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:700;
+    cursor:pointer;color:#fff;min-width:130px;
+    box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .05s ease;
+  }
+  button.action:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .btn-raise{background:#16a34a}
+  .btn-fold{background:#dc2626}
+  .btn-next{background:#2563eb;min-width:180px}
+  .feedback{
+    min-height:64px;margin-top:16px;padding:12px 14px;border-radius:12px;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);
+    text-align:center;font-size:15px;
+  }
+  .feedback.correct{border-color:rgba(34,197,94,.5)}
+  .feedback.wrong{border-color:rgba(239,68,68,.5)}
+  .feedback .verdict{font-weight:800;font-size:17px;margin-bottom:2px}
+  .feedback .verdict.ok{color:var(--good)}
+  .feedback .verdict.no{color:var(--bad)}
+  .feedback .detail{color:var(--muted)}
+  .toolbar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .toolbar button{
+    appearance:none;background:transparent;color:var(--ink);border:1px solid rgba(255,255,255,.2);
+    padding:8px 14px;border-radius:10px;font-size:13px;cursor:pointer;
+  }
+  .toolbar button:hover{background:rgba(255,255,255,.06)}
+  .toolbar label{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
+  select{
+    background:rgba(0,0,0,.35);color:var(--ink);border:1px solid rgba(255,255,255,.2);
+    padding:6px 8px;border-radius:8px;font-size:13px;
+  }
+  /* Range chart */
+  dialog{
+    background:#111;color:var(--ink);border:1px solid rgba(255,255,255,.2);border-radius:14px;
+    max-width:min(96vw,560px);padding:16px;
+  }
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog h3{margin:0 0 4px;font-size:16px}
+  dialog .legend{color:var(--muted);font-size:12px;margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;font-size:11px;font-weight:600}
+  .cell{
+    aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+    background:#2a2a2a;color:#ddd;border-radius:3px;
+  }
+  .cell.raise{background:#16a34a;color:#fff}
+  .cell.fold{background:#3a3a3a;color:#888}
+  .grid-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px}
+  .grid-actions .pct{color:var(--muted);font-size:12px}
+  .grid-actions button{
+    background:transparent;color:var(--ink);border:1px solid rgba(255,255,255,.3);
+    padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;
+  }
+  footer{padding:10px 18px 18px;text-align:center;color:var(--muted);font-size:12px}
+  @media (max-width:420px){
+    .card{width:78px;height:110px}
+    .card .rank{font-size:22px}
+    .card .suit-big{font-size:42px}
+    button.action{min-width:110px;padding:12px 16px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Preflop Trainer</h1>
+    <div class="sub">6-max cash · 100bb · Raise-First-In</div>
+  </div>
+  <div class="stats">
+    <span>Score: <b id="score">0</b> / <b id="total">0</b></span>
+    <span>Accuracy: <b id="acc">—</b></span>
+    <span>Streak: <b id="streak">0</b></span>
+  </div>
+</header>
+
+<main>
+  <div class="table-wrap">
+    <div class="situation">
+      Folded to you in the <span class="position-badge" id="pos">—</span>. What's your action?
+    </div>
+
+    <div class="hand" id="hand"></div>
+
+    <div class="actions" id="actions">
+      <button class="action btn-raise" id="btn-raise">Raise</button>
+      <button class="action btn-fold" id="btn-fold">Fold</button>
+    </div>
+
+    <div class="feedback" id="feedback">Pick an action.</div>
+
+    <div class="toolbar">
+      <button id="btn-chart">Show range chart</button>
+      <label>Position:
+        <select id="pos-filter">
+          <option value="any">Any</option>
+          <option value="UTG">UTG</option>
+          <option value="HJ">HJ</option>
+          <option value="CO">CO</option>
+          <option value="BTN">BTN</option>
+          <option value="SB">SB</option>
+        </select>
+      </label>
+      <button id="btn-reset">Reset stats</button>
+    </div>
+  </div>
+
+  <dialog id="chart-dialog">
+    <h3>Opening range — <span id="chart-pos"></span></h3>
+    <div class="legend">Green = raise · Grey = fold · Suited above the diagonal, offsuit below, pairs on it</div>
+    <div class="grid" id="chart-grid"></div>
+    <div class="grid-actions">
+      <span class="pct" id="chart-pct"></span>
+      <button id="chart-close">Close</button>
+    </div>
+  </dialog>
+</main>
+
+<footer>
+  Ranges based on standard 6-max 100bb solver-approximated opening charts. Educational use.
+</footer>
+
+<script>
+(() => {
+  const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  const SUITS = [
+    {s:'♠', red:false},
+    {s:'♥', red:true},
+    {s:'♦', red:true},
+    {s:'♣', red:false},
+  ];
+
+  // ---------- Range definitions ----------
+  // Each range is a Set of hand codes: pairs "AA", suited "AKs", offsuit "AKo" (higher rank first).
+  function expandRange(spec){
+    // spec is an array of tokens. Supported tokens:
+    //   "22+"                 -> all pairs 22 through AA
+    //   "22-77"               -> pairs in that inclusive range
+    //   "ATs+"                -> A-any suited from AT up to AK
+    //   "K9s+", "Q9s+" ...    -> same idea
+    //   "76s"                 -> single suited hand
+    //   "AJo+"                -> offsuit from AJo to AKo
+    //   "KQo"                 -> single offsuit hand
+    //   "A5s-A2s"             -> range of suited hands (same top rank)
+    const out = new Set();
+    const rIdx = r => RANKS.indexOf(r);
+    for(const tok of spec){
+      // Pairs
+      let m = tok.match(/^([2-9TJQKA])\1\+$/);
+      if(m){
+        const start = rIdx(m[1]);
+        for(let i=start;i>=0;i--) out.add(RANKS[i]+RANKS[i]);
+        continue;
+      }
+      m = tok.match(/^([2-9TJQKA])\1-([2-9TJQKA])\2$/);
+      if(m){
+        const a=rIdx(m[1]), b=rIdx(m[2]);
+        const [lo,hi]=[Math.max(a,b),Math.min(a,b)];
+        for(let i=lo;i>=hi;i--) out.add(RANKS[i]+RANKS[i]);
+        continue;
+      }
+      // Suited plus: e.g. ATs+  -> ATs, AJs, AQs, AKs
+      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])s\+$/);
+      if(m){
+        const hi=rIdx(m[1]), start=rIdx(m[2]);
+        for(let i=start;i>hi;i--) out.add(m[1]+RANKS[i]+'s');
+        continue;
+      }
+      // Offsuit plus
+      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])o\+$/);
+      if(m){
+        const hi=rIdx(m[1]), start=rIdx(m[2]);
+        for(let i=start;i>hi;i--) out.add(m[1]+RANKS[i]+'o');
+        continue;
+      }
+      // Suited range: A5s-A2s
+      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])s-([2-9TJQKA])([2-9TJQKA])s$/);
+      if(m && m[1]===m[3]){
+        const hi = rIdx(m[1]);
+        const a=rIdx(m[2]), b=rIdx(m[4]);
+        const [top,bot]=[Math.min(a,b),Math.max(a,b)];
+        for(let i=top;i<=bot;i++){
+          if(i!==hi) out.add(m[1]+RANKS[i]+'s');
+        }
+        continue;
+      }
+      // Single suited/offsuit
+      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])([so])$/);
+      if(m){
+        out.add(tok);
+        continue;
+      }
+      console.warn('Bad range token:', tok);
+    }
+    return out;
+  }
+
+  // 6-max 100bb open-raise ranges (widely taught, solver-approximated).
+  const RANGES = {
+    UTG: expandRange([
+      '22+',
+      'ATs+','A5s-A4s',
+      'KTs+','QTs+','JTs','T9s','98s','87s','76s','65s',
+      'AJo+','KQo'
+    ]),
+    HJ: expandRange([
+      '22+',
+      'A2s-A5s','A9s','ATs+',
+      'K9s+','Q9s+','J9s+','T8s+','97s+','86s+','75s+','65s','54s',
+      'ATo+','KJo+','QJo'
+    ]),
+    CO: expandRange([
+      '22+',
+      'A2s-A5s','A6s','A7s','A8s','A9s','ATs+',
+      'K6s+','Q8s+','J8s+','T7s+','96s+','86s+','75s+','64s+','54s',
+      'A9o+','KTo+','QTo+','JTo'
+    ]),
+    BTN: expandRange([
+      '22+',
+      'A2s-A5s','A6s','A7s','A8s','A9s','ATs+',
+      'K2s-K5s','K6s','K7s','K8s','K9s','KTs+',
+      'Q2s-Q7s','Q8s+',
+      'J4s+','T6s+','95s+','85s+','74s+','64s+','53s+','43s',
+      'A2o+','K7o+','Q8o+','J8o+','T8o+','97o+','87o','76o'
+    ]),
+    SB: expandRange([
+      '22+',
+      'A2s-A5s','A6s','A7s','A8s','A9s','ATs+',
+      'K2s-K4s','K5s','K6s','K7s','K8s','K9s','KTs+',
+      'Q5s-Q7s','Q8s+',
+      'J6s+','T7s+','96s+','86s+','75s+','65s','54s',
+      'A2o+','K8o+','Q9o+','J9o+','T9o','98o'
+    ]),
+  };
+
+  // ---------- State ----------
+  const state = {
+    hand: null,     // {c1, c2, code}
+    position: null, // "UTG"/...
+    answered: false,
+    score: 0, total: 0, streak: 0,
+    posFilter: 'any',
+  };
+
+  // ---------- Helpers ----------
+  function handCode(c1, c2){
+    const i1 = RANKS.indexOf(c1.rank), i2 = RANKS.indexOf(c2.rank);
+    const hi = i1 < i2 ? c1 : c2;
+    const lo = i1 < i2 ? c2 : c1;
+    if(hi.rank === lo.rank) return hi.rank + lo.rank;
+    return hi.rank + lo.rank + (hi.suit === lo.suit ? 's' : 'o');
+  }
+  function dealHand(){
+    // two distinct cards
+    const a = { rank: RANKS[Math.floor(Math.random()*13)],
+                suit: SUITS[Math.floor(Math.random()*4)] };
+    let b;
+    do{
+      b = { rank: RANKS[Math.floor(Math.random()*13)],
+            suit: SUITS[Math.floor(Math.random()*4)] };
+    } while(a.rank===b.rank && a.suit.s===b.suit.s);
+    // order visually: high card left
+    const [c1,c2] = RANKS.indexOf(a.rank) <= RANKS.indexOf(b.rank) ? [a,b] : [b,a];
+    return { c1, c2, code: handCode(a,b) };
+  }
+  function pickPosition(){
+    const positions = ['UTG','HJ','CO','BTN','SB'];
+    if(state.posFilter !== 'any') return state.posFilter;
+    return positions[Math.floor(Math.random()*positions.length)];
+  }
+  function renderCard(c){
+    const color = c.suit.red ? ' red' : '';
+    const r = c.rank === 'T' ? '10' : c.rank;
+    return `<div class="card${color}">
+      <div><div class="rank">${r}</div><div class="suit-top">${c.suit.s}</div></div>
+      <div class="suit-big">${c.suit.s}</div>
+      <div class="bot"><div class="rank">${r}</div><div class="suit-top">${c.suit.s}</div></div>
+    </div>`;
+  }
+  function updateStats(){
+    document.getElementById('score').textContent = state.score;
+    document.getElementById('total').textContent = state.total;
+    document.getElementById('streak').textContent = state.streak;
+    document.getElementById('acc').textContent =
+      state.total ? Math.round(100*state.score/state.total)+'%' : '—';
+  }
+
+  // ---------- Round flow ----------
+  function newHand(){
+    state.hand = dealHand();
+    state.position = pickPosition();
+    state.answered = false;
+    document.getElementById('pos').textContent = state.position;
+    document.getElementById('hand').innerHTML =
+      renderCard(state.hand.c1) + renderCard(state.hand.c2);
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('feedback').innerHTML =
+      `Hand: <b>${prettyCode(state.hand.code)}</b>. Raise or fold?`;
+    renderActions('choose');
+  }
+  function prettyCode(code){
+    if(code.length===2) return code;
+    return code.slice(0,2) + (code[2]==='s'?'s':'o');
+  }
+  function answer(action){
+    if(state.answered) return;
+    state.answered = true;
+    const shouldRaise = RANGES[state.position].has(state.hand.code);
+    const correct = (action==='raise' && shouldRaise) || (action==='fold' && !shouldRaise);
+    state.total += 1;
+    if(correct){ state.score += 1; state.streak += 1; }
+    else{ state.streak = 0; }
+    updateStats();
+
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback ' + (correct ? 'correct' : 'wrong');
+    fb.innerHTML =
+      `<div class="verdict ${correct?'ok':'no'}">${correct?'Correct':'Incorrect'}</div>` +
+      `<div class="detail">${prettyCode(state.hand.code)} from ${state.position}: ` +
+      `<b>${shouldRaise?'Raise':'Fold'}</b>` +
+      `${shouldRaise?'':' — not in the '+state.position+' opening range'}.</div>`;
+    renderActions('next');
+  }
+  function renderActions(mode){
+    const el = document.getElementById('actions');
+    if(mode==='choose'){
+      el.innerHTML =
+        `<button class="action btn-raise" id="btn-raise">Raise</button>
+         <button class="action btn-fold" id="btn-fold">Fold</button>`;
+      document.getElementById('btn-raise').onclick = () => answer('raise');
+      document.getElementById('btn-fold').onclick  = () => answer('fold');
+    } else {
+      el.innerHTML = `<button class="action btn-next" id="btn-next">Next hand →</button>`;
+      document.getElementById('btn-next').onclick = newHand;
+    }
+  }
+
+  // ---------- Range chart dialog ----------
+  function openChart(){
+    const dlg = document.getElementById('chart-dialog');
+    const pos = state.position || 'UTG';
+    document.getElementById('chart-pos').textContent = pos;
+    const grid = document.getElementById('chart-grid');
+    grid.innerHTML = '';
+    let raiseCombos = 0;
+    for(let r=0;r<13;r++){
+      for(let c=0;c<13;c++){
+        let code;
+        if(r===c) code = RANKS[r]+RANKS[c];
+        else if(r<c) code = RANKS[r]+RANKS[c]+'s';
+        else code = RANKS[c]+RANKS[r]+'o';
+        const raise = RANGES[pos].has(code);
+        if(raise){
+          if(r===c) raiseCombos += 6;
+          else if(r<c) raiseCombos += 4;
+          else raiseCombos += 12;
+        }
+        const label = code.length===2 ? code : code.slice(0,2)+code[2];
+        grid.innerHTML += `<div class="cell ${raise?'raise':'fold'}">${label}</div>`;
+      }
+    }
+    const pct = (100*raiseCombos/1326).toFixed(1);
+    document.getElementById('chart-pct').textContent =
+      `${pos} opens ${pct}% of hands`;
+    if(typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open','');
+  }
+
+  // ---------- Wire up ----------
+  document.getElementById('btn-chart').onclick = openChart;
+  document.getElementById('chart-close').onclick = () =>
+    document.getElementById('chart-dialog').close();
+  document.getElementById('pos-filter').onchange = (e) => {
+    state.posFilter = e.target.value;
+    newHand();
+  };
+  document.getElementById('btn-reset').onclick = () => {
+    state.score = state.total = state.streak = 0;
+    updateStats(); newHand();
+  };
+  // keyboard: R = raise, F = fold, Space/Enter = next
+  document.addEventListener('keydown', (e) => {
+    if(e.repeat) return;
+    const k = e.key.toLowerCase();
+    if(!state.answered){
+      if(k==='r') answer('raise');
+      else if(k==='f') answer('fold');
+    } else {
+      if(k===' '||k==='enter') newHand();
+    }
+  });
+
+  updateStats();
+  newHand();
+})();
+</script>
+</body>
+</html>

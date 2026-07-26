@@ -13,6 +13,7 @@
     --red:#c0392b; --gold:#e6c15a;
     --good:#22c55e; --bad:#ef4444;
     --panel:rgba(0,0,0,.35);
+    --raise:#16a34a; --call:#2563eb; --threebet:#dc2626; --fold:#3a3a3a;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
@@ -32,7 +33,13 @@
   .stats b{color:var(--ink)}
   .table-wrap{width:100%;max-width:640px;background:var(--panel);border:1px solid rgba(255,255,255,.08);
     border-radius:20px;padding:22px 18px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
-  .situation{text-align:center;color:var(--muted);font-size:14px;margin-bottom:10px}
+  .mode-tabs{display:flex;gap:6px;justify-content:center;margin-bottom:12px}
+  .mode-tabs button{
+    appearance:none;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--muted);
+    padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .mode-tabs button.on{background:var(--gold);color:#111;border-color:transparent}
+  .situation{text-align:center;color:var(--muted);font-size:14px;margin-bottom:10px;min-height:38px}
   .position-badge{display:inline-block;padding:3px 10px;border-radius:999px;background:#e6c15a;color:#111;font-weight:700;letter-spacing:.06em}
   .hand{display:flex;justify-content:center;gap:14px;margin:14px 0 20px}
   .card{
@@ -48,12 +55,14 @@
   .card .bot{transform:rotate(180deg);display:flex;flex-direction:column}
   .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
   button.action{
-    appearance:none;border:0;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:700;
-    cursor:pointer;color:#fff;min-width:130px;
+    appearance:none;border:0;border-radius:12px;padding:14px 22px;font-size:16px;font-weight:700;
+    cursor:pointer;color:#fff;min-width:120px;
     box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .05s ease;
   }
   button.action:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
-  .btn-raise{background:#16a34a}
+  .btn-raise{background:var(--raise)}
+  .btn-threebet{background:var(--threebet)}
+  .btn-call{background:var(--call)}
   .btn-fold{background:#dc2626}
   .btn-next{background:#2563eb;min-width:180px}
   .feedback{
@@ -78,7 +87,6 @@
     background:rgba(0,0,0,.35);color:var(--ink);border:1px solid rgba(255,255,255,.2);
     padding:6px 8px;border-radius:8px;font-size:13px;
   }
-  /* Range chart */
   dialog{
     background:#111;color:var(--ink);border:1px solid rgba(255,255,255,.2);border-radius:14px;
     max-width:min(96vw,560px);padding:16px;
@@ -89,11 +97,12 @@
   .grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;font-size:11px;font-weight:600}
   .cell{
     aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
-    background:#2a2a2a;color:#ddd;border-radius:3px;
+    background:var(--fold);color:#888;border-radius:3px;
   }
-  .cell.raise{background:#16a34a;color:#fff}
-  .cell.fold{background:#3a3a3a;color:#888}
-  .grid-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px}
+  .cell.raise    {background:var(--raise);   color:#fff}
+  .cell.threebet {background:var(--threebet);color:#fff}
+  .cell.call     {background:var(--call);    color:#fff}
+  .grid-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap}
   .grid-actions .pct{color:var(--muted);font-size:12px}
   .grid-actions button{
     background:transparent;color:var(--ink);border:1px solid rgba(255,255,255,.3);
@@ -104,7 +113,7 @@
     .card{width:78px;height:110px}
     .card .rank{font-size:22px}
     .card .suit-big{font-size:42px}
-    button.action{min-width:110px;padding:12px 16px}
+    button.action{min-width:104px;padding:12px 14px;font-size:15px}
   }
 </style>
 </head>
@@ -112,7 +121,7 @@
 <header>
   <div>
     <h1>Preflop Trainer</h1>
-    <div class="sub">6-max cash · 100bb · Raise-First-In</div>
+    <div class="sub" id="sub">6-max cash · 100bb</div>
   </div>
   <div class="stats">
     <span>Score: <b id="score">0</b> / <b id="total">0</b></span>
@@ -123,22 +132,22 @@
 
 <main>
   <div class="table-wrap">
-    <div class="situation">
-      Folded to you in the <span class="position-badge" id="pos">—</span>. What's your action?
+    <div class="mode-tabs">
+      <button id="mode-rfi" class="on">Open (RFI)</button>
+      <button id="mode-bb">BB Defense</button>
     </div>
+
+    <div class="situation" id="situation">—</div>
 
     <div class="hand" id="hand"></div>
 
-    <div class="actions" id="actions">
-      <button class="action btn-raise" id="btn-raise">Raise</button>
-      <button class="action btn-fold" id="btn-fold">Fold</button>
-    </div>
+    <div class="actions" id="actions"></div>
 
     <div class="feedback" id="feedback">Pick an action.</div>
 
     <div class="toolbar">
       <button id="btn-chart">Show range chart</button>
-      <label>Position:
+      <label id="pos-filter-wrap">Position:
         <select id="pos-filter">
           <option value="any">Any</option>
           <option value="UTG">UTG</option>
@@ -153,8 +162,8 @@
   </div>
 
   <dialog id="chart-dialog">
-    <h3>Opening range — <span id="chart-pos"></span></h3>
-    <div class="legend">Green = raise · Grey = fold · Suited above the diagonal, offsuit below, pairs on it</div>
+    <h3 id="chart-title"></h3>
+    <div class="legend" id="chart-legend"></div>
     <div class="grid" id="chart-grid"></div>
     <div class="grid-actions">
       <span class="pct" id="chart-pct"></span>
@@ -164,7 +173,7 @@
 </main>
 
 <footer>
-  Ranges based on standard 6-max 100bb solver-approximated opening charts. Educational use.
+  Solver-approximated 6-max 100bb charts. Educational — real GTO play uses mixed strategies.
 </footer>
 
 <script>
@@ -177,22 +186,11 @@
     {s:'♣', red:false},
   ];
 
-  // ---------- Range definitions ----------
-  // Each range is a Set of hand codes: pairs "AA", suited "AKs", offsuit "AKo" (higher rank first).
+  // ---------- Range expansion ----------
   function expandRange(spec){
-    // spec is an array of tokens. Supported tokens:
-    //   "22+"                 -> all pairs 22 through AA
-    //   "22-77"               -> pairs in that inclusive range
-    //   "ATs+"                -> A-any suited from AT up to AK
-    //   "K9s+", "Q9s+" ...    -> same idea
-    //   "76s"                 -> single suited hand
-    //   "AJo+"                -> offsuit from AJo to AKo
-    //   "KQo"                 -> single offsuit hand
-    //   "A5s-A2s"             -> range of suited hands (same top rank)
     const out = new Set();
     const rIdx = r => RANKS.indexOf(r);
     for(const tok of spec){
-      // Pairs
       let m = tok.match(/^([2-9TJQKA])\1\+$/);
       if(m){
         const start = rIdx(m[1]);
@@ -206,21 +204,18 @@
         for(let i=lo;i>=hi;i--) out.add(RANKS[i]+RANKS[i]);
         continue;
       }
-      // Suited plus: e.g. ATs+  -> ATs, AJs, AQs, AKs
       m = tok.match(/^([2-9TJQKA])([2-9TJQKA])s\+$/);
       if(m){
         const hi=rIdx(m[1]), start=rIdx(m[2]);
         for(let i=start;i>hi;i--) out.add(m[1]+RANKS[i]+'s');
         continue;
       }
-      // Offsuit plus
       m = tok.match(/^([2-9TJQKA])([2-9TJQKA])o\+$/);
       if(m){
         const hi=rIdx(m[1]), start=rIdx(m[2]);
         for(let i=start;i>hi;i--) out.add(m[1]+RANKS[i]+'o');
         continue;
       }
-      // Suited range: A5s-A2s
       m = tok.match(/^([2-9TJQKA])([2-9TJQKA])s-([2-9TJQKA])([2-9TJQKA])s$/);
       if(m && m[1]===m[3]){
         const hi = rIdx(m[1]);
@@ -231,19 +226,15 @@
         }
         continue;
       }
-      // Single suited/offsuit
-      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])([so])$/);
-      if(m){
-        out.add(tok);
-        continue;
-      }
+      m = tok.match(/^([2-9TJQKA])([2-9TJQKA])[so]$/);
+      if(m){ out.add(tok); continue; }
       console.warn('Bad range token:', tok);
     }
     return out;
   }
 
-  // 6-max 100bb open-raise ranges (widely taught, solver-approximated).
-  const RANGES = {
+  // ---------- Opening (RFI) ranges — 6-max 100bb ----------
+  const RFI = {
     UTG: expandRange([
       '22+',
       'ATs+','A5s-A4s',
@@ -280,16 +271,103 @@
     ]),
   };
 
+  // ---------- BB defense vs each opener ----------
+  // Each hand is one of: '3bet' | 'call' | 'fold' (fold implicit — everything not listed)
+  const BB_DEF = {
+    UTG: {
+      threebet: expandRange([
+        'TT+','AKs','AKo','AQs','A5s','A4s'
+      ]),
+      call: expandRange([
+        '22-99',
+        'AJs','ATs','A9s','A8s','A7s','A6s','A3s','A2s',
+        'KJs','KTs','K9s','K8s','K7s',
+        'QJs','QTs','Q9s','Q8s',
+        'JTs','J9s','J8s',
+        'T9s','T8s','98s','97s','87s','86s','76s','75s','65s','54s',
+        'AQo','AJo','ATo','KQo','KJo','QJo'
+      ]),
+    },
+    HJ: {
+      threebet: expandRange([
+        '99+','AKs','AKo','AQs','AJs','KQs','A5s','A4s','A3s'
+      ]),
+      call: expandRange([
+        '22-88',
+        'ATs','A9s','A8s','A7s','A6s','A2s',
+        'KJs','KTs','K9s','K8s',
+        'QJs','QTs','Q9s',
+        'JTs','J9s','T9s','T8s','98s','97s','87s','86s','76s','75s','65s','54s',
+        'AQo','AJo','ATo','KQo','KJo','KTo','QJo','QTo','JTo'
+      ]),
+    },
+    CO: {
+      threebet: expandRange([
+        '88+','AJs+','AQo+','KQs','A5s','A4s','A3s','A2s'
+      ]),
+      call: expandRange([
+        '22-77',
+        'ATs','A9s','A8s','A7s','A6s',
+        'KJs','KTs','K9s','K8s','K7s',
+        'QJs','QTs','Q9s','Q8s',
+        'JTs','J9s','J8s','T9s','T8s','T7s',
+        '98s','97s','96s','87s','86s','76s','75s','65s','64s','54s','53s',
+        'AJo','ATo','A9o','KQo','KJo','KTo','QJo','QTo','JTo','T9o'
+      ]),
+    },
+    BTN: {
+      threebet: expandRange([
+        '77+','ATs+','AQo+','KQs','KJs','QJs',
+        'A2s-A5s','K5s','K6s','K7s'
+      ]),
+      call: expandRange([
+        '22-66',
+        'A9s','A8s','A7s','A6s',
+        'KTs','K9s','K8s','K4s','K3s','K2s',
+        'QTs','Q9s','Q8s','Q7s','Q6s','Q5s',
+        'JTs','J9s','J8s','J7s',
+        'T9s','T8s','T7s','98s','97s','96s','87s','86s','85s','76s','75s','65s','64s','54s','53s',
+        'AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','A2o',
+        'KQo','KJo','KTo','K9o','QJo','QTo','Q9o','JTo','J9o','T9o','98o'
+      ]),
+    },
+    SB: {
+      threebet: expandRange([
+        '77+','ATs+','AJo+','KQs','KJs','QJs',
+        'A2s-A5s','K7s','K8s','K9s'
+      ]),
+      call: expandRange([
+        '22-66',
+        'A9s','A8s','A7s','A6s',
+        'KTs','K6s','K5s','K4s','K3s','K2s',
+        'QTs','Q9s','Q8s','Q7s','Q6s',
+        'JTs','J9s','J8s','J7s',
+        'T9s','T8s','T7s','98s','97s','96s','87s','86s','76s','75s','65s','54s','53s',
+        'ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','A2o',
+        'KQo','KJo','KTo','K9o','QJo','QTo','Q9o','JTo','J9o','T9o','98o'
+      ]),
+    },
+  };
+
+  // Correct action lookup for BB defense
+  function bbDefAction(opener, code){
+    const r = BB_DEF[opener];
+    if(r.threebet.has(code)) return '3bet';
+    if(r.call.has(code))     return 'call';
+    return 'fold';
+  }
+
   // ---------- State ----------
   const state = {
-    hand: null,     // {c1, c2, code}
-    position: null, // "UTG"/...
+    mode: 'rfi',           // 'rfi' | 'bb'
+    hand: null,
+    position: null,        // in RFI mode: hero's seat; in BB mode: opener's seat
     answered: false,
     score: 0, total: 0, streak: 0,
     posFilter: 'any',
   };
 
-  // ---------- Helpers ----------
+  // ---------- Card helpers ----------
   function handCode(c1, c2){
     const i1 = RANKS.indexOf(c1.rank), i2 = RANKS.indexOf(c2.rank);
     const hi = i1 < i2 ? c1 : c2;
@@ -298,7 +376,6 @@
     return hi.rank + lo.rank + (hi.suit === lo.suit ? 's' : 'o');
   }
   function dealHand(){
-    // two distinct cards
     const a = { rank: RANKS[Math.floor(Math.random()*13)],
                 suit: SUITS[Math.floor(Math.random()*4)] };
     let b;
@@ -306,14 +383,8 @@
       b = { rank: RANKS[Math.floor(Math.random()*13)],
             suit: SUITS[Math.floor(Math.random()*4)] };
     } while(a.rank===b.rank && a.suit.s===b.suit.s);
-    // order visually: high card left
     const [c1,c2] = RANKS.indexOf(a.rank) <= RANKS.indexOf(b.rank) ? [a,b] : [b,a];
     return { c1, c2, code: handCode(a,b) };
-  }
-  function pickPosition(){
-    const positions = ['UTG','HJ','CO','BTN','SB'];
-    if(state.posFilter !== 'any') return state.posFilter;
-    return positions[Math.floor(Math.random()*positions.length)];
   }
   function renderCard(c){
     const color = c.suit.red ? ' red' : '';
@@ -324,6 +395,14 @@
       <div class="bot"><div class="rank">${r}</div><div class="suit-top">${c.suit.s}</div></div>
     </div>`;
   }
+  function prettyCode(code){ return code; }
+
+  function pickPosition(){
+    const positions = ['UTG','HJ','CO','BTN','SB'];
+    if(state.posFilter !== 'any') return state.posFilter;
+    return positions[Math.floor(Math.random()*positions.length)];
+  }
+
   function updateStats(){
     document.getElementById('score').textContent = state.score;
     document.getElementById('total').textContent = state.total;
@@ -337,83 +416,133 @@
     state.hand = dealHand();
     state.position = pickPosition();
     state.answered = false;
-    document.getElementById('pos').textContent = state.position;
+
+    const sit = document.getElementById('situation');
+    if(state.mode === 'rfi'){
+      sit.innerHTML = `Folded to you in the <span class="position-badge">${state.position}</span>. What's your action?`;
+    } else {
+      sit.innerHTML = `<span class="position-badge">${state.position}</span> opens 2.5bb. Everyone folds. You're in the <span class="position-badge">BB</span>. Action?`;
+    }
     document.getElementById('hand').innerHTML =
       renderCard(state.hand.c1) + renderCard(state.hand.c2);
     document.getElementById('feedback').className = 'feedback';
     document.getElementById('feedback').innerHTML =
-      `Hand: <b>${prettyCode(state.hand.code)}</b>. Raise or fold?`;
+      `Hand: <b>${prettyCode(state.hand.code)}</b>. Choose an action.`;
     renderActions('choose');
   }
-  function prettyCode(code){
-    if(code.length===2) return code;
-    return code.slice(0,2) + (code[2]==='s'?'s':'o');
-  }
+
   function answer(action){
     if(state.answered) return;
     state.answered = true;
-    const shouldRaise = RANGES[state.position].has(state.hand.code);
-    const correct = (action==='raise' && shouldRaise) || (action==='fold' && !shouldRaise);
+    let correct, correctAction, extra = '';
+    if(state.mode === 'rfi'){
+      const shouldRaise = RFI[state.position].has(state.hand.code);
+      correctAction = shouldRaise ? 'raise' : 'fold';
+      correct = (action === correctAction);
+      extra = shouldRaise
+        ? `in the ${state.position} opening range`
+        : `not in the ${state.position} opening range`;
+    } else {
+      correctAction = bbDefAction(state.position, state.hand.code);
+      correct = (action === correctAction);
+      extra = `vs ${state.position} open`;
+    }
     state.total += 1;
     if(correct){ state.score += 1; state.streak += 1; }
     else{ state.streak = 0; }
     updateStats();
 
+    const labelMap = {raise:'Raise', fold:'Fold', call:'Call', '3bet':'3-Bet'};
     const fb = document.getElementById('feedback');
     fb.className = 'feedback ' + (correct ? 'correct' : 'wrong');
     fb.innerHTML =
       `<div class="verdict ${correct?'ok':'no'}">${correct?'Correct':'Incorrect'}</div>` +
-      `<div class="detail">${prettyCode(state.hand.code)} from ${state.position}: ` +
-      `<b>${shouldRaise?'Raise':'Fold'}</b>` +
-      `${shouldRaise?'':' — not in the '+state.position+' opening range'}.</div>`;
+      `<div class="detail">${prettyCode(state.hand.code)}: <b>${labelMap[correctAction]}</b> — ${extra}.</div>`;
     renderActions('next');
   }
+
   function renderActions(mode){
     const el = document.getElementById('actions');
-    if(mode==='choose'){
-      el.innerHTML =
-        `<button class="action btn-raise" id="btn-raise">Raise</button>
-         <button class="action btn-fold" id="btn-fold">Fold</button>`;
-      document.getElementById('btn-raise').onclick = () => answer('raise');
-      document.getElementById('btn-fold').onclick  = () => answer('fold');
+    if(mode === 'choose'){
+      if(state.mode === 'rfi'){
+        el.innerHTML =
+          `<button class="action btn-raise" id="a-raise">Raise</button>
+           <button class="action btn-fold"  id="a-fold">Fold</button>`;
+        document.getElementById('a-raise').onclick = () => answer('raise');
+        document.getElementById('a-fold').onclick  = () => answer('fold');
+      } else {
+        el.innerHTML =
+          `<button class="action btn-threebet" id="a-3bet">3-Bet</button>
+           <button class="action btn-call"     id="a-call">Call</button>
+           <button class="action btn-fold"     id="a-fold">Fold</button>`;
+        document.getElementById('a-3bet').onclick = () => answer('3bet');
+        document.getElementById('a-call').onclick = () => answer('call');
+        document.getElementById('a-fold').onclick = () => answer('fold');
+      }
     } else {
-      el.innerHTML = `<button class="action btn-next" id="btn-next">Next hand →</button>`;
-      document.getElementById('btn-next').onclick = newHand;
+      el.innerHTML = `<button class="action btn-next" id="a-next">Next hand →</button>`;
+      document.getElementById('a-next').onclick = newHand;
     }
   }
 
-  // ---------- Range chart dialog ----------
+  // ---------- Chart ----------
   function openChart(){
     const dlg = document.getElementById('chart-dialog');
     const pos = state.position || 'UTG';
-    document.getElementById('chart-pos').textContent = pos;
     const grid = document.getElementById('chart-grid');
     grid.innerHTML = '';
-    let raiseCombos = 0;
+    let raiseCombos = 0, threebetCombos = 0, callCombos = 0;
+    const weight = code =>
+      code.length===2 ? 6 : (code.endsWith('s') ? 4 : 12);
     for(let r=0;r<13;r++){
       for(let c=0;c<13;c++){
         let code;
         if(r===c) code = RANKS[r]+RANKS[c];
         else if(r<c) code = RANKS[r]+RANKS[c]+'s';
         else code = RANKS[c]+RANKS[r]+'o';
-        const raise = RANGES[pos].has(code);
-        if(raise){
-          if(r===c) raiseCombos += 6;
-          else if(r<c) raiseCombos += 4;
-          else raiseCombos += 12;
+        let cls = 'fold';
+        if(state.mode === 'rfi'){
+          if(RFI[pos].has(code)){ cls = 'raise'; raiseCombos += weight(code); }
+        } else {
+          if(BB_DEF[pos].threebet.has(code)){ cls='threebet'; threebetCombos += weight(code); }
+          else if(BB_DEF[pos].call.has(code)){ cls='call'; callCombos += weight(code); }
         }
-        const label = code.length===2 ? code : code.slice(0,2)+code[2];
-        grid.innerHTML += `<div class="cell ${raise?'raise':'fold'}">${label}</div>`;
+        grid.innerHTML += `<div class="cell ${cls}">${code}</div>`;
       }
     }
-    const pct = (100*raiseCombos/1326).toFixed(1);
-    document.getElementById('chart-pct').textContent =
-      `${pos} opens ${pct}% of hands`;
+    const title = document.getElementById('chart-title');
+    const legend = document.getElementById('chart-legend');
+    const pct = document.getElementById('chart-pct');
+    if(state.mode === 'rfi'){
+      title.textContent = `${pos} opening range`;
+      legend.textContent = 'Green = raise · Grey = fold · Suited above the diagonal, offsuit below, pairs on it';
+      pct.textContent = `${pos} opens ${(100*raiseCombos/1326).toFixed(1)}% of hands`;
+    } else {
+      title.textContent = `BB defense vs ${pos} open`;
+      legend.textContent = 'Red = 3-bet · Blue = call · Grey = fold';
+      pct.textContent = `Defend ${((100*(threebetCombos+callCombos))/1326).toFixed(1)}% · 3-bet ${(100*threebetCombos/1326).toFixed(1)}% · call ${(100*callCombos/1326).toFixed(1)}%`;
+    }
     if(typeof dlg.showModal === 'function') dlg.showModal();
     else dlg.setAttribute('open','');
   }
 
+  // ---------- Mode switching ----------
+  function setMode(m){
+    state.mode = m;
+    document.getElementById('mode-rfi').classList.toggle('on', m==='rfi');
+    document.getElementById('mode-bb').classList.toggle('on',  m==='bb');
+    document.getElementById('sub').textContent =
+      m === 'rfi' ? '6-max cash · 100bb · Raise-First-In'
+                  : '6-max cash · 100bb · BB Defense';
+    // reset stats when switching modes to avoid confusing tallies
+    state.score = state.total = state.streak = 0;
+    updateStats();
+    newHand();
+  }
+
   // ---------- Wire up ----------
+  document.getElementById('mode-rfi').onclick = () => setMode('rfi');
+  document.getElementById('mode-bb').onclick  = () => setMode('bb');
   document.getElementById('btn-chart').onclick = openChart;
   document.getElementById('chart-close').onclick = () =>
     document.getElementById('chart-dialog').close();
@@ -425,13 +554,20 @@
     state.score = state.total = state.streak = 0;
     updateStats(); newHand();
   };
-  // keyboard: R = raise, F = fold, Space/Enter = next
+
+  // keyboard: RFI => R/F; BB => T/C/F; Space/Enter = next
   document.addEventListener('keydown', (e) => {
     if(e.repeat) return;
     const k = e.key.toLowerCase();
     if(!state.answered){
-      if(k==='r') answer('raise');
-      else if(k==='f') answer('fold');
+      if(state.mode === 'rfi'){
+        if(k==='r') answer('raise');
+        else if(k==='f') answer('fold');
+      } else {
+        if(k==='t' || k==='3') answer('3bet');
+        else if(k==='c') answer('call');
+        else if(k==='f') answer('fold');
+      }
     } else {
       if(k===' '||k==='enter') newHand();
     }

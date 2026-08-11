@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyLab Job Estimates</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #263449;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #10b981;
+    --accent-2: #059669;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --input-bg: #0b1220;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  button { cursor: pointer; font: inherit; }
+  input, select, textarea { font: inherit; color: var(--text); background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  textarea { resize: vertical; min-height: 60px; width: 100%; }
+  .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
+  /* Sidebar */
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .sidebar-header { padding: 14px; border-bottom: 1px solid var(--border); }
+  .sidebar-header h1 { margin: 0 0 8px; font-size: 18px; letter-spacing: 0.3px; }
+  .sidebar-header .sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .new-btn { width: 100%; background: var(--accent); color: #04120b; border: none; padding: 9px;
+    border-radius: 6px; font-weight: 600; }
+  .new-btn:hover { background: var(--accent-2); color: #fff; }
+  .search { padding: 10px 12px; }
+  .search input { width: 100%; }
+  .job-list { overflow-y: auto; flex: 1; }
+  .job-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .job-item:hover { background: var(--panel-2); }
+  .job-item.active { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 11px; }
+  .job-item .title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .job-item .meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .status-green { background: #22c55e; }
+  .status-yellow { background: #eab308; }
+  .status-red { background: #ef4444; }
+  .status-gray { background: #6b7280; }
+  .sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .sidebar-footer button { flex: 1; background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+  .sidebar-footer button:hover { color: var(--text); border-color: var(--accent); }
+  /* Main */
+  .main { overflow-y: auto; }
+  .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); text-align: center; padding: 40px; }
+  .job { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .job-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+  .job-header .name-input { flex: 1; font-size: 22px; font-weight: 700; padding: 8px 10px; }
+  .job-header select { min-width: 130px; }
+  .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 10px; border-radius: 6px; }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+  .icon-btn.danger:hover { color: #fff; background: var(--danger); border-color: var(--danger); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 16px; }
+  .section h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .section h2 .h-total { color: var(--accent); font-weight: 700; font-size: 15px; }
+  table.items { width: 100%; border-collapse: collapse; }
+  table.items th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: 0.5px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  table.items td { padding: 4px; vertical-align: middle; }
+  table.items input { width: 100%; }
+  table.items input[type="number"] { text-align: right; }
+  table.items .qty-col { width: 70px; }
+  table.items .price-col { width: 100px; }
+  table.items .total-col { width: 100px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
+  table.items .actions-col { width: 30px; text-align: center; }
+  table.items .del-row { background: transparent; border: none; color: var(--muted); font-size: 16px; }
+  table.items .del-row:hover { color: var(--danger); }
+  .add-row-btn { margin-top: 8px; background: transparent; color: var(--accent); border: 1px dashed var(--border);
+    border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 100%; }
+  .add-row-btn:hover { border-color: var(--accent); background: rgba(16,185,129,0.05); }
+  /* Totals grid */
+  .totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .tot-line { display: flex; justify-content: space-between; padding: 6px 0;
+    border-bottom: 1px dashed var(--border); font-variant-numeric: tabular-nums; }
+  .tot-line.grand { border-bottom: none; border-top: 2px solid var(--accent); margin-top: 4px;
+    padding-top: 10px; font-size: 18px; font-weight: 700; color: var(--accent); }
+  .tot-line .label { color: var(--muted); }
+  .tot-line .val { font-weight: 600; }
+  .tot-line.profit .val { color: var(--accent); }
+  .tot-line input { width: 110px; text-align: right; }
+  .save-indicator { position: fixed; bottom: 16px; right: 16px; background: var(--panel);
+    border: 1px solid var(--border); color: var(--muted); padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .save-indicator.show { opacity: 1; }
+  .save-indicator.saved { color: var(--accent); border-color: var(--accent); }
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .sidebar, .no-print, .save-indicator { display: none !important; }
+    .app { display: block; }
+    .main { overflow: visible; height: auto; }
+    .section { background: white; border: 1px solid #ddd; page-break-inside: avoid; }
+    .job-header .name-input, input, textarea, select {
+      background: white; color: black; border: none; padding: 2px 0; }
+    .tot-line { border-color: #ccc; }
+    .tot-line.grand { color: #059669; border-color: #059669; }
+    table.items th { color: #666; border-color: #ccc; }
+    table.items .total-col { color: #059669; }
+    h2, h2 .h-total { color: #333 !important; }
+    .add-row-btn, .icon-btn { display: none; }
+  }
+  /* Mobile */
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 10;
+      transform: translateX(-100%); transition: transform 0.2s; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+    .sidebar.open { transform: translateX(0); }
+    .menu-btn { display: inline-flex !important; }
+    .row, .totals-grid { grid-template-columns: 1fr; }
+  }
+  .menu-btn { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h1>🔨 SkyLab Estimates</h1>
+      <div class="sub">All data saved on this device</div>
+      <button class="new-btn" onclick="newJob()">+ New Estimate</button>
+    </div>
+    <div class="search">
+      <input type="search" placeholder="Search jobs…" id="searchInput" oninput="renderJobList()">
+    </div>
+    <div class="job-list" id="jobList"></div>
+    <div class="sidebar-footer">
+      <button onclick="exportBackup()" title="Download a JSON backup of all jobs">⬇ Backup</button>
+      <button onclick="importBackup()" title="Restore from a JSON backup">⬆ Restore</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="empty-state" id="emptyState">
+      <div>
+        <h2>No estimate selected</h2>
+        <p>Pick a job on the left or create a new one.</p>
+      </div>
+    </div>
+    <div class="job" id="jobView" style="display:none"></div>
+  </main>
+</div>
+
+<div class="save-indicator" id="saveIndicator">Saved</div>
+<input type="file" id="importFile" accept="application/json" style="display:none">
+
+<script>
+/* ---------- Storage ---------- */
+const KEY = 'skylab.estimates.v1';
+const STATUS_OPTIONS = [
+  { value: 'green',  label: '🟢 Active' },
+  { value: 'yellow', label: '🟡 Pending' },
+  { value: 'red',    label: '🔴 Blocked' },
+  { value: 'gray',   label: '⚪ Archived' },
+];
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) { console.error(e); }
+  return { jobs: [], activeId: null };
+}
+function saveState() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+  flashSaved();
+}
+let state = loadState();
+let activeJob = null;
+let saveTimer = null;
+function debouncedSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 300);
+}
+function flashSaved() {
+  const el = document.getElementById('saveIndicator');
+  el.textContent = '✓ Saved locally';
+  el.classList.add('show', 'saved');
+  clearTimeout(flashSaved._t);
+  flashSaved._t = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+/* ---------- Model ---------- */
+function uid() { return 'j_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function blankJob(name='New Estimate') {
+  return {
+    id: uid(),
+    name,
+    status: 'green',
+    pm: '',
+    address: '',
+    notes: '',
+    createdAt: Date.now(),
+    sections: [
+      { id: 's_lumber', title: 'Lumber', items: [] },
+      { id: 's_hw',     title: 'Hardware', items: [] },
+    ],
+    materialsUpcharge: 0,
+    buffer: 0,
+    taxIncluded: true,
+    taxRate: 0,
+    deliveryIncluded: true,
+    deliveryCost: 0,
+    labor: {
+      subContractor: '',
+      subContractorCost: 0,
+      demoCost: 0,
+      installCost: 0,
+    },
+    myExpenses: 0,
+  };
+}
+
+function seedDennisDr() {
+  const j = blankJob('Dennis Dr');
+  j.status = 'green';
+  j.pm = 'Keri';
+  j.address = '4206 Dennis Dr.\nWest Valley City, UT 84120';
+  j.notes = [
+    "Garage rafter length 18'",
+    "Garage 20' wide replace",
+    "16' and 12' for garage beam",
+    "10' post",
+    "20' top plate",
+    "18' middle section",
+    "15 - 16' for wall",
+    "One 3' window",
+    "14' for floor joists",
+  ].join('\n');
+  j.sections = [
+    { id: 's_lumber', title: 'Lumber', items: [
+      { id: uid(), qty: 25, desc: "2x8 x 18'", price: 0 },
+      { id: uid(), qty: 24, desc: "2x8 x 20'", price: 0 },
+      { id: uid(), qty:  2, desc: "2x4 x 16'", price: 0 },
+      { id: uid(), qty: 26, desc: "2x4 x 8'",  price: 0 },
+      { id: uid(), qty:  1, desc: "2x6 x 10'", price: 0 },
+      { id: uid(), qty:  1, desc: "3-1/2\" x 12\" 18' GLB", price: 0 },
+      { id: uid(), qty:  1, desc: "3-1/2\" x 12\" 14' GLB", price: 0 },
+      { id: uid(), qty: 35, desc: "7/16 OSB",  price: 0 },
+      { id: uid(), qty: 10, desc: "2x4 x 16'", price: 0 },
+      { id: uid(), qty:  1, desc: "2x4 x 12' PT", price: 0 },
+      { id: uid(), qty:  3, desc: "2x8 x 10'", price: 0 },
+      { id: uid(), qty: 17, desc: "2x8 x 8'",  price: 0 },
+      { id: uid(), qty: 22, desc: "2x8 x 14'", price: 0 },
+    ]},
+    { id: 's_hw', title: 'Hardware', items: [
+      { id: uid(), qty:   4, desc: "5/8 Wedge anchor bolts w/ 4in square washer plate", price: 0 },
+      { id: uid(), qty:  45, desc: "A35",       price: 0 },
+      { id: uid(), qty:  52, desc: "H1",        price: 0 },
+      { id: uid(), qty:  14, desc: "H2.5",      price: 0 },
+      { id: uid(), qty: 500, desc: "SDWS1600 (500 ct)", price: 0 },
+      { id: uid(), qty:   2, desc: "AC6",       price: 0 },
+    ]},
+  ];
+  // Their totals: Materials $3,949 (tax included) + upcharge $790 + buffer $500 = $5,249
+  // We don't have per-item prices, so store as a lump using materialsUpcharge/buffer only.
+  // To preserve their totals, put the $3,949 as a single "Materials (lump total)" line if all item prices are 0.
+  j.sections.push({ id: 's_lump', title: 'Materials (Lump Sum)', items: [
+    { id: uid(), qty: 1, desc: 'Lumber + Hardware supplier total (tax & delivery included)', price: 3949 },
+  ]});
+  j.materialsUpcharge = 790;
+  j.buffer = 500;
+  j.taxIncluded = true;
+  j.deliveryIncluded = true;
+
+  j.labor = {
+    subContractor: 'Jairo (3–4 days)',
+    subContractorCost: 4500,
+    demoCost: 3500,
+    installCost: 8500, // We charge $12,000 total ($3,500 demo + $8,500 install)
+  };
+  j.myExpenses = 140;
+  return j;
+}
+
+/* Seed on first load */
+if (state.jobs.length === 0) {
+  const dennis = seedDennisDr();
+  state.jobs.push(dennis);
+  state.activeId = dennis.id;
+  saveState();
+}
+
+/* ---------- Money helpers ---------- */
+const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+const money = (n) => fmt.format(Number(n) || 0);
+const num = (n) => Number(n) || 0;
+
+function itemsSubtotal(sections) {
+  let t = 0;
+  for (const s of sections) for (const it of s.items) t += num(it.qty) * num(it.price);
+  return t;
+}
+function materialsTotal(j) {
+  const raw = itemsSubtotal(j.sections);
+  const withTax = j.taxIncluded ? raw : raw * (1 + num(j.taxRate)/100);
+  const withDelivery = withTax + (j.deliveryIncluded ? 0 : num(j.deliveryCost));
+  return withDelivery + num(j.materialsUpcharge) + num(j.buffer);
+}
+function laborRevenue(j) {
+  return num(j.labor.demoCost) + num(j.labor.installCost);
+}
+function grandTotal(j) {
+  return materialsTotal(j) + laborRevenue(j);
+}
+function jobExpenses(j) {
+  return num(j.labor.subContractorCost) + num(j.myExpenses) + materialsTotal(j);
+}
+function jobProfit(j) {
+  return grandTotal(j) - jobExpenses(j);
+}
+function jobMargin(j) {
+  const gt = grandTotal(j);
+  return gt > 0 ? (jobProfit(j) / gt) * 100 : 0;
+}
+
+/* ---------- Rendering ---------- */
+function renderJobList() {
+  const list = document.getElementById('jobList');
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const jobs = state.jobs.filter(j =>
+    !q || j.name.toLowerCase().includes(q) ||
+    (j.pm||'').toLowerCase().includes(q) ||
+    (j.address||'').toLowerCase().includes(q)
+  );
+  jobs.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+
+  list.innerHTML = jobs.map(j => `
+    <div class="job-item ${j.id === state.activeId ? 'active' : ''}" onclick="selectJob('${j.id}')">
+      <div class="title"><span class="status-dot status-${j.status}"></span>${escapeHtml(j.name)}</div>
+      <div class="meta">${escapeHtml(j.pm ? 'PM: '+j.pm : '—')} · ${money(grandTotal(j))}</div>
+    </div>
+  `).join('') || '<div style="padding:14px;color:var(--muted);font-size:13px">No jobs match.</div>';
+}
+
+function selectJob(id) {
+  state.activeId = id;
+  saveState();
+  render();
+}
+
+function render() {
+  renderJobList();
+  activeJob = state.jobs.find(j => j.id === state.activeId);
+  const view = document.getElementById('jobView');
+  const empty = document.getElementById('emptyState');
+  if (!activeJob) {
+    view.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+  view.style.display = 'block';
+  view.innerHTML = renderJob(activeJob);
+}
+
+function renderJob(j) {
+  const statusSel = STATUS_OPTIONS.map(o =>
+    `<option value="${o.value}" ${o.value===j.status?'selected':''}>${o.label}</option>`
+  ).join('');
+
+  return `
+    <div class="job-header no-print-controls">
+      <input class="name-input" value="${escapeAttr(j.name)}" oninput="updateField('name', this.value)">
+      <select onchange="updateField('status', this.value)">${statusSel}</select>
+      <button class="icon-btn no-print" onclick="window.print()" title="Print / Save PDF">🖨</button>
+      <button class="icon-btn no-print" onclick="duplicateJob()" title="Duplicate">⧉</button>
+      <button class="icon-btn danger no-print" onclick="deleteJob()" title="Delete">🗑</button>
+    </div>
+
+    <div class="section">
+      <h2>Details</h2>
+      <div class="row">
+        <div class="field">
+          <label>Project Manager</label>
+          <input value="${escapeAttr(j.pm)}" oninput="updateField('pm', this.value)">
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <textarea oninput="updateField('address', this.value)">${escapeHtml(j.address)}</textarea>
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea rows="6" oninput="updateField('notes', this.value)">${escapeHtml(j.notes)}</textarea>
+      </div>
+    </div>
+
+    ${j.sections.map((s, si) => renderSection(s, si)).join('')}
+
+    <div class="section no-print-controls no-print">
+      <button class="add-row-btn" onclick="addSection()">+ Add Materials Section</button>
+    </div>
+
+    <div class="section">
+      <h2>Materials Adjustments</h2>
+      <div class="row">
+        <div class="field">
+          <label>Upcharge ($)</label>
+          <input type="number" step="0.01" value="${j.materialsUpcharge}" oninput="updateField('materialsUpcharge', +this.value)">
+        </div>
+        <div class="field">
+          <label>Buffer ($)</label>
+          <input type="number" step="0.01" value="${j.buffer}" oninput="updateField('buffer', +this.value)">
+        </div>
+        <div class="field">
+          <label><input type="checkbox" ${j.taxIncluded?'checked':''} onchange="updateField('taxIncluded', this.checked)"> Tax already included in item prices</label>
+          ${j.taxIncluded ? '' : `<input type="number" step="0.01" placeholder="Tax rate %" value="${j.taxRate}" oninput="updateField('taxRate', +this.value)">`}
+        </div>
+        <div class="field">
+          <label><input type="checkbox" ${j.deliveryIncluded?'checked':''} onchange="updateField('deliveryIncluded', this.checked)"> Delivery included</label>
+          ${j.deliveryIncluded ? '' : `<input type="number" step="0.01" placeholder="Delivery cost $" value="${j.deliveryCost}" oninput="updateField('deliveryCost', +this.value)">`}
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Labor <span class="h-total">${money(laborRevenue(j))}</span></h2>
+      <div class="row">
+        <div class="field">
+          <label>Subcontractor</label>
+          <input value="${escapeAttr(j.labor.subContractor)}" oninput="updateLabor('subContractor', this.value)">
+        </div>
+        <div class="field">
+          <label>Sub. Cost ($) — our expense</label>
+          <input type="number" step="0.01" value="${j.labor.subContractorCost}" oninput="updateLabor('subContractorCost', +this.value)">
+        </div>
+        <div class="field">
+          <label>Demo Charge ($) — we charge</label>
+          <input type="number" step="0.01" value="${j.labor.demoCost}" oninput="updateLabor('demoCost', +this.value)">
+        </div>
+        <div class="field">
+          <label>Install Charge ($) — we charge</label>
+          <input type="number" step="0.01" value="${j.labor.installCost}" oninput="updateLabor('installCost', +this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Summary</h2>
+      <div class="totals-grid">
+        <div>
+          <div class="tot-line"><span class="label">Materials subtotal</span><span class="val">${money(itemsSubtotal(j.sections))}</span></div>
+          <div class="tot-line"><span class="label">Upcharge</span><span class="val">${money(j.materialsUpcharge)}</span></div>
+          <div class="tot-line"><span class="label">Buffer</span><span class="val">${money(j.buffer)}</span></div>
+          ${j.taxIncluded ? '' : `<div class="tot-line"><span class="label">Tax (${j.taxRate}%)</span><span class="val">${money(itemsSubtotal(j.sections) * (num(j.taxRate)/100))}</span></div>`}
+          ${j.deliveryIncluded ? '' : `<div class="tot-line"><span class="label">Delivery</span><span class="val">${money(j.deliveryCost)}</span></div>`}
+          <div class="tot-line"><span class="label"><strong>Materials total</strong></span><span class="val">${money(materialsTotal(j))}</span></div>
+          <div class="tot-line"><span class="label">Labor charge</span><span class="val">${money(laborRevenue(j))}</span></div>
+          <div class="tot-line grand"><span>GRAND TOTAL</span><span>${money(grandTotal(j))}</span></div>
+        </div>
+        <div>
+          <div class="tot-line"><span class="label">My expenses</span><span class="val">
+            <input type="number" step="0.01" value="${j.myExpenses}" oninput="updateField('myExpenses', +this.value)"></span></div>
+          <div class="tot-line"><span class="label">Subcontractor cost</span><span class="val">${money(j.labor.subContractorCost)}</span></div>
+          <div class="tot-line"><span class="label">Materials cost (to us)</span><span class="val">${money(materialsTotal(j))}</span></div>
+          <div class="tot-line"><span class="label"><strong>Total expenses</strong></span><span class="val">${money(jobExpenses(j))}</span></div>
+          <div class="tot-line profit"><span class="label"><strong>Profit</strong></span><span class="val">${money(jobProfit(j))}</span></div>
+          <div class="tot-line profit"><span class="label"><strong>Margin</strong></span><span class="val">${jobMargin(j).toFixed(1)}%</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSection(s, si) {
+  const total = s.items.reduce((a,i) => a + num(i.qty)*num(i.price), 0);
+  return `
+    <div class="section">
+      <h2>
+        <span>
+          <input value="${escapeAttr(s.title)}" style="background:transparent;border:none;color:var(--muted);font-weight:600;text-transform:uppercase;padding:0;font-size:15px;letter-spacing:0.5px;"
+            oninput="updateSection(${si}, 'title', this.value)">
+        </span>
+        <span class="h-total">${money(total)}</span>
+      </h2>
+      <table class="items">
+        <thead>
+          <tr><th class="qty-col">Qty</th><th>Description</th><th class="price-col">Unit $</th><th class="total-col">Line Total</th><th class="actions-col no-print"></th></tr>
+        </thead>
+        <tbody>
+          ${s.items.map((it, ii) => `
+            <tr>
+              <td class="qty-col"><input type="number" step="any" value="${it.qty}" oninput="updateItem(${si},${ii},'qty',+this.value)"></td>
+              <td><input value="${escapeAttr(it.desc)}" oninput="updateItem(${si},${ii},'desc',this.value)"></td>
+              <td class="price-col"><input type="number" step="0.01" value="${it.price}" oninput="updateItem(${si},${ii},'price',+this.value)"></td>
+              <td class="total-col">${money(num(it.qty)*num(it.price))}</td>
+              <td class="actions-col no-print"><button class="del-row" onclick="deleteItem(${si},${ii})" title="Remove">✕</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <button class="add-row-btn no-print" onclick="addItem(${si})">+ Add line</button>
+      <button class="add-row-btn no-print" onclick="deleteSection(${si})" style="color:var(--muted);margin-top:4px;">− Remove section</button>
+    </div>
+  `;
+}
+
+/* ---------- Actions ---------- */
+function updateField(k, v) { activeJob[k] = v; debouncedSave(); refreshTotals(); }
+function updateLabor(k, v) { activeJob.labor[k] = v; debouncedSave(); refreshTotals(); }
+function updateSection(si, k, v) { activeJob.sections[si][k] = v; debouncedSave(); refreshTotals(); }
+function updateItem(si, ii, k, v) {
+  activeJob.sections[si].items[ii][k] = v;
+  debouncedSave();
+  refreshTotals();
+}
+function addItem(si) {
+  activeJob.sections[si].items.push({ id: uid(), qty: 1, desc: '', price: 0 });
+  saveState();
+  render();
+}
+function deleteItem(si, ii) {
+  activeJob.sections[si].items.splice(ii, 1);
+  saveState();
+  render();
+}
+function addSection() {
+  activeJob.sections.push({ id: 's_'+uid(), title: 'New Section', items: [] });
+  saveState();
+  render();
+}
+function deleteSection(si) {
+  if (!confirm('Remove this section and all its lines?')) return;
+  activeJob.sections.splice(si, 1);
+  saveState();
+  render();
+}
+function newJob() {
+  const j = blankJob();
+  state.jobs.push(j);
+  state.activeId = j.id;
+  saveState();
+  render();
+}
+function duplicateJob() {
+  const copy = JSON.parse(JSON.stringify(activeJob));
+  copy.id = uid();
+  copy.createdAt = Date.now();
+  copy.name = activeJob.name + ' (copy)';
+  state.jobs.push(copy);
+  state.activeId = copy.id;
+  saveState();
+  render();
+}
+function deleteJob() {
+  if (!confirm('Delete "'+activeJob.name+'"? This can\'t be undone.')) return;
+  state.jobs = state.jobs.filter(j => j.id !== activeJob.id);
+  state.activeId = state.jobs[0]?.id || null;
+  saveState();
+  render();
+}
+
+/* Update totals without full re-render (keeps input focus & cursor) */
+function refreshTotals() {
+  const j = activeJob;
+  if (!j) return;
+  // Update section header totals
+  document.querySelectorAll('.section').forEach((el, idx) => {
+    // skipping non-section headers is fine — we just recompute all displayed money spots via full re-render for section totals
+  });
+  // Simplest correct approach: re-render summary block and sidebar totals only.
+  // But to keep it simple and always correct, do a light re-render of section h-totals + summary.
+  j.sections.forEach((s, si) => {
+    const total = s.items.reduce((a,i) => a + num(i.qty)*num(i.price), 0);
+    // update line-total cells
+    const sectionEls = document.querySelectorAll('.section');
+    // We can't reliably index by DOM offset here without more code, so do a full re-render
+  });
+  // Full re-render is easiest; but re-rendering blurs the active input. We work around by
+  // re-rendering only if focus is not inside an input, otherwise we update a few live cells:
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+    updateLiveCells();
+    updateSidebarTotalsOnly();
+  } else {
+    render();
+  }
+}
+function updateLiveCells() {
+  const j = activeJob;
+  // Update line totals inline
+  const sections = document.querySelectorAll('#jobView > .section');
+  // First section is Details; then sections; last few are adjustments/labor/summary.
+  // Rather than fragile indexing, mark each item row with a unique id in future. For now update summary only.
+  const summary = document.querySelector('#jobView .section:last-child .totals-grid');
+  if (summary) {
+    summary.parentElement.parentElement.replaceWith(makeSummaryNode(j));
+  }
+}
+function makeSummaryNode(j) {
+  const div = document.createElement('div');
+  div.className = 'section';
+  div.innerHTML = `
+    <h2>Summary</h2>
+    <div class="totals-grid">
+      <div>
+        <div class="tot-line"><span class="label">Materials subtotal</span><span class="val">${money(itemsSubtotal(j.sections))}</span></div>
+        <div class="tot-line"><span class="label">Upcharge</span><span class="val">${money(j.materialsUpcharge)}</span></div>
+        <div class="tot-line"><span class="label">Buffer</span><span class="val">${money(j.buffer)}</span></div>
+        ${j.taxIncluded ? '' : `<div class="tot-line"><span class="label">Tax (${j.taxRate}%)</span><span class="val">${money(itemsSubtotal(j.sections) * (num(j.taxRate)/100))}</span></div>`}
+        ${j.deliveryIncluded ? '' : `<div class="tot-line"><span class="label">Delivery</span><span class="val">${money(j.deliveryCost)}</span></div>`}
+        <div class="tot-line"><span class="label"><strong>Materials total</strong></span><span class="val">${money(materialsTotal(j))}</span></div>
+        <div class="tot-line"><span class="label">Labor charge</span><span class="val">${money(laborRevenue(j))}</span></div>
+        <div class="tot-line grand"><span>GRAND TOTAL</span><span>${money(grandTotal(j))}</span></div>
+      </div>
+      <div>
+        <div class="tot-line"><span class="label">My expenses</span><span class="val">
+          <input type="number" step="0.01" value="${j.myExpenses}" oninput="updateField('myExpenses', +this.value)"></span></div>
+        <div class="tot-line"><span class="label">Subcontractor cost</span><span class="val">${money(j.labor.subContractorCost)}</span></div>
+        <div class="tot-line"><span class="label">Materials cost (to us)</span><span class="val">${money(materialsTotal(j))}</span></div>
+        <div class="tot-line"><span class="label"><strong>Total expenses</strong></span><span class="val">${money(jobExpenses(j))}</span></div>
+        <div class="tot-line profit"><span class="label"><strong>Profit</strong></span><span class="val">${money(jobProfit(j))}</span></div>
+        <div class="tot-line profit"><span class="label"><strong>Margin</strong></span><span class="val">${jobMargin(j).toFixed(1)}%</span></div>
+      </div>
+    </div>
+  `;
+  return div;
+}
+function updateSidebarTotalsOnly() {
+  // Re-render sidebar list to show updated $ totals
+  renderJobList();
+}
+
+/* ---------- Backup / Restore ---------- */
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const date = new Date().toISOString().split('T')[0];
+  a.download = `skylab-estimates-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importBackup() {
+  document.getElementById('importFile').click();
+}
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!imported.jobs) throw new Error('Not a valid backup');
+      if (confirm(`Import ${imported.jobs.length} job(s)? This will REPLACE your current data.`)) {
+        state = imported;
+        saveState();
+        render();
+      }
+    } catch (err) {
+      alert('Could not read backup: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- Utils ---------- */
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ---------- Boot ---------- */
+render();
+</script>
+</body>
+</html>

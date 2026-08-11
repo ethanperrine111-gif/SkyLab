@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Estimates">
 <title>SkyLab Job Estimates</title>
 <style>
   :root {
@@ -14,119 +17,211 @@
     --muted: #94a3b8;
     --accent: #10b981;
     --accent-2: #059669;
-    --warn: #f59e0b;
     --danger: #ef4444;
     --input-bg: #0b1220;
+    --radius: 8px;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  /* Class rules like `display:flex` beat the UA sheet's [hidden] rule, so restate it. */
+  [hidden] { display: none !important; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
   button { cursor: pointer; font: inherit; }
-  input, select, textarea { font: inherit; color: var(--text); background: var(--input-bg);
-    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
-  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  textarea { resize: vertical; min-height: 60px; width: 100%; }
-  .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
-  /* Sidebar */
-  .sidebar { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  input, select, textarea {
+    font: inherit; color: var(--text); background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; max-width: 100%;
+  }
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: -1px;
+  }
+  input:disabled { opacity: 0.4; cursor: not-allowed; }
+  textarea { resize: vertical; min-height: 44px; width: 100%; overflow: hidden; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .money { font-variant-numeric: tabular-nums; }
+
+  .app { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: 100vh; height: 100dvh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
   .sidebar-header { padding: 14px; border-bottom: 1px solid var(--border); }
-  .sidebar-header h1 { margin: 0 0 8px; font-size: 18px; letter-spacing: 0.3px; }
-  .sidebar-header .sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .sidebar-header h1 { margin: 0 0 4px; font-size: 17px; letter-spacing: 0.3px; }
+  .sidebar-header .sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
   .new-btn { width: 100%; background: var(--accent); color: #04120b; border: none; padding: 9px;
-    border-radius: 6px; font-weight: 600; }
+    border-radius: 6px; font-weight: 700; }
   .new-btn:hover { background: var(--accent-2); color: #fff; }
-  .search { padding: 10px 12px; }
+  .search { padding: 10px 12px 6px; }
   .search input { width: 100%; }
-  .job-list { overflow-y: auto; flex: 1; }
-  .job-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .job-list { overflow-y: auto; flex: 1; min-height: 0; }
+  .job-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+    border-left: 3px solid transparent; }
   .job-item:hover { background: var(--panel-2); }
-  .job-item.active { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 11px; }
-  .job-item .title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .job-item.active { background: var(--panel-2); border-left-color: var(--accent); }
+  .job-item .title { font-weight: 600; display: flex; align-items: center; gap: 7px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .job-item .meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .status-green { background: #22c55e; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .status-green  { background: #22c55e; }
   .status-yellow { background: #eab308; }
-  .status-red { background: #ef4444; }
-  .status-gray { background: #6b7280; }
-  .sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .status-red    { background: #ef4444; }
+  .status-gray   { background: #6b7280; }
+  .list-empty { padding: 16px 14px; color: var(--muted); font-size: 13px; }
+  .sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
   .sidebar-footer button { flex: 1; background: transparent; color: var(--muted); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+    border-radius: 6px; padding: 7px 8px; font-size: 12px; }
   .sidebar-footer button:hover { color: var(--text); border-color: var(--accent); }
-  /* Main */
-  .main { overflow-y: auto; }
-  .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); text-align: center; padding: 40px; }
-  .job { max-width: 1000px; margin: 0 auto; padding: 24px; }
-  .job-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
-  .job-header .name-input { flex: 1; font-size: 22px; font-weight: 700; padding: 8px 10px; }
-  .job-header select { min-width: 130px; }
+  .backdrop { display: none; }
+
+  /* ---------- Main ---------- */
+  .main { overflow-y: auto; min-width: 0; }
+  .empty-state { display: flex; align-items: center; justify-content: center; height: 100%;
+    color: var(--muted); text-align: center; padding: 40px; }
+  .job { max-width: 1000px; margin: 0 auto; padding: 20px 24px 60px; }
+  .job-header { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .job-header .name-input { flex: 1 1 240px; font-size: 21px; font-weight: 700; padding: 8px 10px; }
   .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--muted);
-    padding: 8px 10px; border-radius: 6px; }
+    padding: 9px 11px; border-radius: 6px; line-height: 1; }
   .icon-btn:hover { color: var(--text); border-color: var(--accent); }
   .icon-btn.danger:hover { color: #fff; background: var(--danger); border-color: var(--danger); }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .field label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px; margin-bottom: 16px; }
-  .section h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase;
-    color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
-  .section h2 .h-total { color: var(--accent); font-weight: 700; font-size: 15px; }
-  table.items { width: 100%; border-collapse: collapse; }
-  table.items th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted);
-    letter-spacing: 0.5px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-weight: 600; }
-  table.items td { padding: 4px; vertical-align: middle; }
-  table.items input { width: 100%; }
-  table.items input[type="number"] { text-align: right; }
-  table.items .qty-col { width: 70px; }
-  table.items .price-col { width: 100px; }
-  table.items .total-col { width: 100px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
-  table.items .actions-col { width: 30px; text-align: center; }
-  table.items .del-row { background: transparent; border: none; color: var(--muted); font-size: 16px; }
-  table.items .del-row:hover { color: var(--danger); }
-  .add-row-btn { margin-top: 8px; background: transparent; color: var(--accent); border: 1px dashed var(--border);
-    border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 100%; }
-  .add-row-btn:hover { border-color: var(--accent); background: rgba(16,185,129,0.05); }
-  /* Totals grid */
-  .totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .tot-line { display: flex; justify-content: space-between; padding: 6px 0;
-    border-bottom: 1px dashed var(--border); font-variant-numeric: tabular-nums; }
-  .tot-line.grand { border-bottom: none; border-top: 2px solid var(--accent); margin-top: 4px;
-    padding-top: 10px; font-size: 18px; font-weight: 700; color: var(--accent); }
-  .tot-line .label { color: var(--muted); }
-  .tot-line .val { font-weight: 600; }
-  .tot-line.profit .val { color: var(--accent); }
-  .tot-line input { width: 110px; text-align: right; }
-  .save-indicator { position: fixed; bottom: 16px; right: 16px; background: var(--panel);
-    border: 1px solid var(--border); color: var(--muted); padding: 8px 12px; border-radius: 6px;
-    font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-  .save-indicator.show { opacity: 1; }
-  .save-indicator.saved { color: var(--accent); border-color: var(--accent); }
-  /* Print */
-  @media print {
-    body { background: white; color: black; }
-    .sidebar, .no-print, .save-indicator { display: none !important; }
-    .app { display: block; }
-    .main { overflow: visible; height: auto; }
-    .section { background: white; border: 1px solid #ddd; page-break-inside: avoid; }
-    .job-header .name-input, input, textarea, select {
-      background: white; color: black; border: none; padding: 2px 0; }
-    .tot-line { border-color: #ccc; }
-    .tot-line.grand { color: #059669; border-color: #059669; }
-    table.items th { color: #666; border-color: #ccc; }
-    table.items .total-col { color: #059669; }
-    h2, h2 .h-total { color: #333 !important; }
-    .add-row-btn, .icon-btn { display: none; }
-  }
-  /* Mobile */
-  @media (max-width: 800px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 10;
-      transform: translateX(-100%); transition: transform 0.2s; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
-    .sidebar.open { transform: translateX(0); }
-    .menu-btn { display: inline-flex !important; }
-    .row, .totals-grid { grid-template-columns: 1fr; }
-  }
   .menu-btn { display: none; }
+
+  .section { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px; }
+  .section h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .section h2 .h-total { color: var(--accent); font-weight: 700; font-size: 15px; flex: none; }
+  .section-title-input { background: transparent; border: 1px solid transparent; color: var(--muted);
+    font-weight: 600; text-transform: uppercase; padding: 2px 4px; font-size: 13px;
+    letter-spacing: 0.6px; width: 100%; max-width: 320px; }
+  .section-title-input:hover { border-color: var(--border); }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field > label { font-size: 11px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; }
+  .field .hint { font-size: 11px; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text);
+    text-transform: none; letter-spacing: 0; font-weight: 500; cursor: pointer; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+
+  /* ---------- Items table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table.items { width: 100%; border-collapse: collapse; min-width: 460px; }
+  table.items th { text-align: left; font-size: 10px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: 0.5px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-weight: 700; }
+  table.items td { padding: 3px 4px; vertical-align: middle; }
+  table.items input { width: 100%; }
+  table.items .qty-col   { width: 78px; }
+  table.items .price-col { width: 108px; }
+  table.items .total-col { width: 104px; text-align: right; color: var(--accent);
+    font-variant-numeric: tabular-nums; font-weight: 600; }
+  table.items .act-col   { width: 32px; text-align: center; }
+  table.items tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .del-row { background: transparent; border: none; color: var(--muted); font-size: 15px;
+    padding: 4px 6px; border-radius: 4px; }
+  .del-row:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+  .rows-empty td { color: var(--muted); font-size: 13px; padding: 12px 4px; }
+  .add-row-btn { margin-top: 8px; background: transparent; color: var(--accent);
+    border: 1px dashed var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; width: 100%; }
+  .add-row-btn:hover { border-color: var(--accent); background: rgba(16,185,129,0.06); }
+  .add-row-btn.subtle { color: var(--muted); margin-top: 6px; }
+  .add-row-btn.subtle:hover { color: var(--danger); border-color: var(--danger); background: rgba(239,68,68,0.06); }
+
+  /* ---------- Totals ---------- */
+  .totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .tot-head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+  .tot-line { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 7px 0; border-bottom: 1px dashed var(--border); font-variant-numeric: tabular-nums; }
+  .tot-line .label { color: var(--muted); }
+  .tot-line .val { font-weight: 600; white-space: nowrap; }
+  .tot-line.strong .label { color: var(--text); font-weight: 700; }
+  .tot-line.total { border-bottom: none; border-top: 2px solid var(--accent); margin-top: 4px;
+    padding-top: 11px; font-size: 18px; font-weight: 700; color: var(--accent); }
+  .tot-line.total .label { color: var(--accent); font-weight: 700; }
+  .tot-line.profit .val { color: var(--accent); }
+  .tot-line.profit.negative .val { color: var(--danger); }
+  .tot-line input { width: 118px; }
+
+  .save-indicator { position: fixed; bottom: 16px; right: 16px; background: var(--panel);
+    border: 1px solid var(--accent); color: var(--accent); padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
+  .save-indicator.show { opacity: 1; }
+  .save-indicator.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 820px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 285px; z-index: 30;
+      transform: translateX(-100%); transition: transform .2s ease;
+      box-shadow: 4px 0 24px rgba(0,0,0,.5); }
+    .sidebar.open { transform: translateX(0); }
+    .backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 25; }
+    .menu-btn { display: inline-block; }
+    .row, .totals-grid { grid-template-columns: minmax(0, 1fr); }
+    .totals-grid { gap: 18px; }
+    .job { padding: 16px 14px 60px; }
+    .job-header .name-input { font-size: 18px; }
+
+    /* Reflow each line item into a two-row card so the total stays on screen
+       instead of hiding behind a horizontal scroll. */
+    .table-wrap { overflow: visible; }
+    table.items { min-width: 0; }
+    table.items thead { display: none; }
+    table.items, table.items tbody { display: block; }
+    table.items tr {
+      display: grid; gap: 6px 8px; align-items: center;
+      grid-template-columns: 76px minmax(0, 1fr) 30px;
+      grid-template-areas: "qty desc del" "price total del";
+      padding: 9px 0; border-bottom: 1px solid var(--border);
+    }
+    table.items tr:last-child { border-bottom: none; }
+    table.items td { display: block; padding: 0; width: auto !important; }
+    td.qty-col   { grid-area: qty; }
+    td.desc-col  { grid-area: desc; }
+    table.items td.price-col { grid-area: price; display: flex; align-items: center; gap: 6px; }
+    td.price-col::before { content: '@'; color: var(--muted); font-size: 13px; flex: none; }
+    td.total-col { grid-area: total; text-align: right; }
+    td.act-col   { grid-area: del; }
+    tr.rows-empty { display: block; }
+    tr.rows-empty td { grid-column: 1 / -1; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    html, body { height: auto; background: #fff; color: #000; }
+    .app { display: block; height: auto; }
+    /* .hint text is on-screen guidance for us, not part of the document. */
+    .sidebar, .backdrop, .no-print, .save-indicator, .hint { display: none !important; }
+    .main { overflow: visible; height: auto; }
+    .job { max-width: none; padding: 0; }
+    .section { background: #fff; border: 1px solid #d4d4d4; page-break-inside: avoid; margin-bottom: 10px; }
+    .section h2, .section h2 .h-total, .tot-line .label { color: #333 !important; }
+    .tot-line.total, .tot-line.total .label, .tot-line.profit .val,
+    table.items .total-col, .section h2 .h-total { color: #047857 !important; }
+    input, textarea, select, .section-title-input {
+      background: #fff !important; color: #000 !important; border: none !important;
+      padding: 1px 0 !important; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+    textarea { overflow: visible !important; resize: none; }
+    .tot-line { border-color: #ddd; }
+    table.items th { color: #666; border-color: #ccc; }
+    table.items { min-width: 0; }
+    .table-wrap { overflow: visible; }
+    .job-header .name-input { font-size: 22px; font-weight: 700; }
+    /* A printed estimate goes to the customer: keep our cost basis and profit off it
+       unless the "include our costs" box is ticked. */
+    body:not(.print-internal) .internal { display: none !important; }
+    body:not(.print-internal) .totals-grid { grid-template-columns: 1fr; }
+    /* Per-line pricing is our cost basis too — the customer copy lists scope, then totals. */
+    body:not(.print-internal) table.items .price-col,
+    body:not(.print-internal) table.items .total-col,
+    body:not(.print-internal) [data-section-total] { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -134,549 +229,747 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h1>🔨 SkyLab Estimates</h1>
-      <div class="sub">All data saved on this device</div>
-      <button class="new-btn" onclick="newJob()">+ New Estimate</button>
+      <div class="sub">Saved automatically on this device</div>
+      <button class="new-btn" data-action="new-job">+ New Estimate</button>
     </div>
     <div class="search">
-      <input type="search" placeholder="Search jobs…" id="searchInput" oninput="renderJobList()">
+      <input type="search" id="searchInput" placeholder="Search jobs…" aria-label="Search jobs">
     </div>
     <div class="job-list" id="jobList"></div>
     <div class="sidebar-footer">
-      <button onclick="exportBackup()" title="Download a JSON backup of all jobs">⬇ Backup</button>
-      <button onclick="importBackup()" title="Restore from a JSON backup">⬆ Restore</button>
+      <button data-action="export" title="Download a JSON backup of every job">⬇ Backup</button>
+      <button data-action="import" title="Restore all jobs from a JSON backup">⬆ Restore</button>
     </div>
   </aside>
+  <div class="backdrop" id="backdrop"></div>
 
   <main class="main" id="main">
     <div class="empty-state" id="emptyState">
       <div>
         <h2>No estimate selected</h2>
-        <p>Pick a job on the left or create a new one.</p>
+        <p>Pick a job from the list, or create a new one.</p>
+        <button class="new-btn" style="width:auto;padding:9px 18px" data-action="new-job">+ New Estimate</button>
       </div>
     </div>
-    <div class="job" id="jobView" style="display:none"></div>
+    <div class="job" id="jobView" hidden></div>
   </main>
 </div>
 
-<div class="save-indicator" id="saveIndicator">Saved</div>
-<input type="file" id="importFile" accept="application/json" style="display:none">
+<div class="save-indicator" id="saveIndicator" role="status" aria-live="polite"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
 
 <script>
-/* ---------- Storage ---------- */
+"use strict";
+
+/* ============================================================
+   Storage
+   ============================================================ */
 const KEY = 'skylab.estimates.v1';
+const SNAPSHOT_KEY = 'skylab.estimates.v1.prev';
+const SCHEMA = 2;
+
 const STATUS_OPTIONS = [
-  { value: 'green',  label: '🟢 Active' },
-  { value: 'yellow', label: '🟡 Pending' },
-  { value: 'red',    label: '🔴 Blocked' },
+  { value: 'green',  label: '🟢 Active'   },
+  { value: 'yellow', label: '🟡 Pending'  },
+  { value: 'red',    label: '🔴 Blocked'  },
   { value: 'gray',   label: '⚪ Archived' },
 ];
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e) { console.error(e); }
-  return { jobs: [], activeId: null };
-}
-function saveState() {
-  localStorage.setItem(KEY, JSON.stringify(state));
-  flashSaved();
-}
-let state = loadState();
+let state = { version: SCHEMA, jobs: [], activeId: null };
 let activeJob = null;
 let saveTimer = null;
-function debouncedSave() {
+let saveDirty = false;
+
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const jobView   = $('#jobView');
+const jobListEl = $('#jobList');
+const sidebarEl = $('#sidebar');
+const backdrop  = $('#backdrop');
+
+function loadState() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); }
+  catch (e) { toast('Storage blocked — data will not persist', true); return null; }
+  if (!raw) return null;
+  try { return migrate(JSON.parse(raw)); }
+  catch (e) {
+    // Don't let the re-seed overwrite the damaged blob — stash it so it can be recovered by hand.
+    console.warn('Unreadable save, keeping a copy under ' + SNAPSHOT_KEY, e);
+    try { localStorage.setItem(SNAPSHOT_KEY, raw); } catch (_) {}
+    toast('Saved data was unreadable — starting fresh', true);
+    return null;
+  }
+}
+
+function saveState() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveState, 300);
-}
-function flashSaved() {
-  const el = document.getElementById('saveIndicator');
-  el.textContent = '✓ Saved locally';
-  el.classList.add('show', 'saved');
-  clearTimeout(flashSaved._t);
-  flashSaved._t = setTimeout(() => el.classList.remove('show'), 1500);
+  saveTimer = null;
+  saveDirty = false;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    toast('✓ Saved');
+  } catch (e) {
+    console.error(e);
+    toast(e.name === 'QuotaExceededError' ? 'Out of storage space!' : 'Could not save!', true);
+  }
 }
 
-/* ---------- Model ---------- */
-function uid() { return 'j_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function debouncedSave() {
+  saveDirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 400);
+}
 
-function blankJob(name='New Estimate') {
+/** Flush any pending write before the page goes away. */
+function flushSave() { if (saveDirty) saveState(); }
+window.addEventListener('beforeunload', flushSave);
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+
+let toastTimer = null;
+function toast(msg, isError = false) {
+  const el = $('#saveIndicator');
+  el.textContent = msg;
+  el.classList.toggle('error', isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), isError ? 4000 : 1400);
+}
+
+/* ============================================================
+   Model
+   ============================================================ */
+let idCounter = 0;
+function uid(prefix = 'id') {
+  return prefix + '_' + Date.now().toString(36) + (idCounter++).toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function blankJob(name = 'New Estimate') {
+  const now = Date.now();
   return {
-    id: uid(),
-    name,
-    status: 'green',
-    pm: '',
-    address: '',
-    notes: '',
-    createdAt: Date.now(),
+    id: uid('job'), name, status: 'green',
+    pm: '', address: '', notes: '',
+    createdAt: now, updatedAt: now,
     sections: [
-      { id: 's_lumber', title: 'Lumber', items: [] },
-      { id: 's_hw',     title: 'Hardware', items: [] },
+      { id: uid('sec'), title: 'Lumber',   items: [] },
+      { id: uid('sec'), title: 'Hardware', items: [] },
     ],
     materialsUpcharge: 0,
     buffer: 0,
-    taxIncluded: true,
-    taxRate: 0,
-    deliveryIncluded: true,
-    deliveryCost: 0,
-    labor: {
-      subContractor: '',
-      subContractorCost: 0,
-      demoCost: 0,
-      installCost: 0,
-    },
+    taxIncluded: true,  taxRate: 0,
+    deliveryIncluded: true, deliveryCost: 0,
+    labor: { subContractor: '', subContractorCost: 0, demoCost: 0, installCost: 0 },
     myExpenses: 0,
   };
 }
 
+/** Fill in anything a older save (or hand-edited backup) is missing, so nothing throws. */
+function migrate(data) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.jobs)) {
+    throw new Error('Not a valid estimates file');
+  }
+  data.version = SCHEMA;
+  data.jobs = data.jobs.map(raw => {
+    const j = Object.assign(blankJob(), raw);
+    j.labor = Object.assign(blankJob().labor, raw.labor || {});
+    j.sections = (Array.isArray(raw.sections) ? raw.sections : []).map(s => ({
+      id: s.id || uid('sec'),
+      title: String(s.title ?? 'Section'),
+      items: (Array.isArray(s.items) ? s.items : []).map(it => ({
+        id: it.id || uid('item'),
+        qty: n(it.qty),
+        desc: String(it.desc ?? ''),
+        price: n(it.price),
+      })),
+    }));
+    ['materialsUpcharge','buffer','taxRate','deliveryCost','myExpenses'].forEach(k => { j[k] = n(j[k]); });
+    ['subContractorCost','demoCost','installCost'].forEach(k => { j.labor[k] = n(j.labor[k]); });
+    j.taxIncluded = j.taxIncluded !== false;
+    j.deliveryIncluded = j.deliveryIncluded !== false;
+    if (!STATUS_OPTIONS.some(o => o.value === j.status)) j.status = 'green';
+    j.updatedAt = n(j.updatedAt) || n(j.createdAt) || Date.now();
+    return j;
+  });
+  if (!data.jobs.some(j => j.id === data.activeId)) data.activeId = data.jobs[0]?.id ?? null;
+  return data;
+}
+
 function seedDennisDr() {
   const j = blankJob('Dennis Dr');
-  j.status = 'green';
   j.pm = 'Keri';
   j.address = '4206 Dennis Dr.\nWest Valley City, UT 84120';
   j.notes = [
     "Garage rafter length 18'",
-    "Garage 20' wide replace",
+    "Garage 20' wide — replace",
     "16' and 12' for garage beam",
     "10' post",
     "20' top plate",
     "18' middle section",
-    "15 - 16' for wall",
+    "15 @ 16' for wall",
     "One 3' window",
     "14' for floor joists",
   ].join('\n');
+
+  const line = (qty, desc, price = 0) => ({ id: uid('item'), qty, desc, price });
   j.sections = [
-    { id: 's_lumber', title: 'Lumber', items: [
-      { id: uid(), qty: 25, desc: "2x8 x 18'", price: 0 },
-      { id: uid(), qty: 24, desc: "2x8 x 20'", price: 0 },
-      { id: uid(), qty:  2, desc: "2x4 x 16'", price: 0 },
-      { id: uid(), qty: 26, desc: "2x4 x 8'",  price: 0 },
-      { id: uid(), qty:  1, desc: "2x6 x 10'", price: 0 },
-      { id: uid(), qty:  1, desc: "3-1/2\" x 12\" 18' GLB", price: 0 },
-      { id: uid(), qty:  1, desc: "3-1/2\" x 12\" 14' GLB", price: 0 },
-      { id: uid(), qty: 35, desc: "7/16 OSB",  price: 0 },
-      { id: uid(), qty: 10, desc: "2x4 x 16'", price: 0 },
-      { id: uid(), qty:  1, desc: "2x4 x 12' PT", price: 0 },
-      { id: uid(), qty:  3, desc: "2x8 x 10'", price: 0 },
-      { id: uid(), qty: 17, desc: "2x8 x 8'",  price: 0 },
-      { id: uid(), qty: 22, desc: "2x8 x 14'", price: 0 },
+    { id: uid('sec'), title: 'Lumber', items: [
+      line(25, "2x8 x 18'"),
+      line(24, "2x8 x 20'"),
+      line( 2, "2x4 x 16'"),
+      line(26, "2x4 x 8'"),
+      line( 1, "2x6 x 10'"),
+      line( 1, '3-1/2" x 12" 18\' GLB'),
+      line( 1, '3-1/2" x 12" 14\' GLB'),
+      line(35, '7/16 OSB'),
+      line(10, "2x4 x 16'"),
+      line( 1, "2x4 x 12' PT"),
+      line( 3, "2x8 x 10'"),
+      line(17, "2x8 x 8'"),
+      line(22, "2x8 x 14'"),
     ]},
-    { id: 's_hw', title: 'Hardware', items: [
-      { id: uid(), qty:   4, desc: "5/8 Wedge anchor bolts w/ 4in square washer plate", price: 0 },
-      { id: uid(), qty:  45, desc: "A35",       price: 0 },
-      { id: uid(), qty:  52, desc: "H1",        price: 0 },
-      { id: uid(), qty:  14, desc: "H2.5",      price: 0 },
-      { id: uid(), qty: 500, desc: "SDWS1600 (500 ct)", price: 0 },
-      { id: uid(), qty:   2, desc: "AC6",       price: 0 },
+    { id: uid('sec'), title: 'Hardware', items: [
+      line(  4, '5/8 Wedge anchor bolts w/ 4in square washer plate'),
+      line( 45, 'A35'),
+      line( 52, 'H1'),
+      line( 14, 'H2.5'),
+      line(500, 'SDWS1600'),
+      line(  2, 'AC6'),
+    ]},
+    // No per-unit pricing was quoted, so the supplier total is carried as one line.
+    // Fill in unit prices above and zero this out to itemize.
+    { id: uid('sec'), title: 'Materials Order', items: [
+      line(1, 'Lumber + hardware order (tax & delivery included)', 3949),
     ]},
   ];
-  // Their totals: Materials $3,949 (tax included) + upcharge $790 + buffer $500 = $5,249
-  // We don't have per-item prices, so store as a lump using materialsUpcharge/buffer only.
-  // To preserve their totals, put the $3,949 as a single "Materials (lump total)" line if all item prices are 0.
-  j.sections.push({ id: 's_lump', title: 'Materials (Lump Sum)', items: [
-    { id: uid(), qty: 1, desc: 'Lumber + Hardware supplier total (tax & delivery included)', price: 3949 },
-  ]});
   j.materialsUpcharge = 790;
   j.buffer = 500;
-  j.taxIncluded = true;
-  j.deliveryIncluded = true;
-
   j.labor = {
-    subContractor: 'Jairo (3–4 days)',
+    subContractor: 'Jairo — 3–4 days',
     subContractorCost: 4500,
     demoCost: 3500,
-    installCost: 8500, // We charge $12,000 total ($3,500 demo + $8,500 install)
+    installCost: 8500,   // $12,000 charged total = $3,500 demo + $8,500 install
   };
   j.myExpenses = 140;
   return j;
 }
 
-/* Seed on first load */
-if (state.jobs.length === 0) {
-  const dennis = seedDennisDr();
-  state.jobs.push(dennis);
-  state.activeId = dennis.id;
-  saveState();
-}
+/* ============================================================
+   Math
+   ============================================================ */
+const n = (v) => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
+const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const money = (v) => fmt.format(n(v));
 
-/* ---------- Money helpers ---------- */
-const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
-const money = (n) => fmt.format(Number(n) || 0);
-const num = (n) => Number(n) || 0;
+const lineTotal    = (it) => n(it.qty) * n(it.price);
+const sectionTotal = (s)  => s.items.reduce((a, it) => a + lineTotal(it), 0);
+const itemsSubtotal= (j)  => j.sections.reduce((a, s) => a + sectionTotal(s), 0);
+const taxAmount    = (j)  => j.taxIncluded ? 0 : itemsSubtotal(j) * (n(j.taxRate) / 100);
+const deliveryAmount=(j)  => j.deliveryIncluded ? 0 : n(j.deliveryCost);
 
-function itemsSubtotal(sections) {
-  let t = 0;
-  for (const s of sections) for (const it of s.items) t += num(it.qty) * num(it.price);
-  return t;
-}
-function materialsTotal(j) {
-  const raw = itemsSubtotal(j.sections);
-  const withTax = j.taxIncluded ? raw : raw * (1 + num(j.taxRate)/100);
-  const withDelivery = withTax + (j.deliveryIncluded ? 0 : num(j.deliveryCost));
-  return withDelivery + num(j.materialsUpcharge) + num(j.buffer);
-}
-function laborRevenue(j) {
-  return num(j.labor.demoCost) + num(j.labor.installCost);
-}
-function grandTotal(j) {
-  return materialsTotal(j) + laborRevenue(j);
-}
-function jobExpenses(j) {
-  return num(j.labor.subContractorCost) + num(j.myExpenses) + materialsTotal(j);
-}
-function jobProfit(j) {
-  return grandTotal(j) - jobExpenses(j);
-}
-function jobMargin(j) {
-  const gt = grandTotal(j);
-  return gt > 0 ? (jobProfit(j) / gt) * 100 : 0;
-}
+const materialsTotal = (j) =>
+  itemsSubtotal(j) + taxAmount(j) + deliveryAmount(j) + n(j.materialsUpcharge) + n(j.buffer);
 
-/* ---------- Rendering ---------- */
+const laborRevenue = (j) => n(j.labor.demoCost) + n(j.labor.installCost);
+const grandTotal   = (j) => materialsTotal(j) + laborRevenue(j);
+// Materials are billed through at cost, so the same figure lands on both sides.
+const totalExpenses= (j) => materialsTotal(j) + n(j.labor.subContractorCost) + n(j.myExpenses);
+const profit       = (j) => grandTotal(j) - totalExpenses(j);
+const margin       = (j) => { const g = grandTotal(j); return g ? (profit(j) / g) * 100 : 0; };
+
+/* ============================================================
+   Render — sidebar
+   ============================================================ */
 function renderJobList() {
-  const list = document.getElementById('jobList');
-  const q = (document.getElementById('searchInput').value || '').toLowerCase();
-  const jobs = state.jobs.filter(j =>
-    !q || j.name.toLowerCase().includes(q) ||
-    (j.pm||'').toLowerCase().includes(q) ||
-    (j.address||'').toLowerCase().includes(q)
-  );
-  jobs.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  const q = ($('#searchInput').value || '').trim().toLowerCase();
+  const jobs = state.jobs
+    .filter(j => !q || [j.name, j.pm, j.address, j.notes].some(f => (f || '').toLowerCase().includes(q)))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 
-  list.innerHTML = jobs.map(j => `
-    <div class="job-item ${j.id === state.activeId ? 'active' : ''}" onclick="selectJob('${j.id}')">
-      <div class="title"><span class="status-dot status-${j.status}"></span>${escapeHtml(j.name)}</div>
-      <div class="meta">${escapeHtml(j.pm ? 'PM: '+j.pm : '—')} · ${money(grandTotal(j))}</div>
-    </div>
-  `).join('') || '<div style="padding:14px;color:var(--muted);font-size:13px">No jobs match.</div>';
+  if (!jobs.length) {
+    jobListEl.innerHTML = `<div class="list-empty">${state.jobs.length ? 'No jobs match that search.' : 'No jobs yet.'}</div>`;
+    return;
+  }
+  jobListEl.innerHTML = jobs.map(j => `
+    <div class="job-item${j.id === state.activeId ? ' active' : ''}" data-job="${j.id}" role="button" tabindex="0">
+      <div class="title">
+        <span class="status-dot status-${j.status}" data-dot="${j.id}"></span>
+        <span data-job-name="${j.id}">${esc(j.name || 'Untitled')}</span>
+      </div>
+      <div class="meta" data-job-meta="${j.id}">${jobMeta(j)}</div>
+    </div>`).join('');
 }
+const jobMeta = (j) => `${esc(j.pm ? 'PM: ' + j.pm : 'No PM')} · ${money(grandTotal(j))}`;
+
+/* ============================================================
+   Render — job
+   ============================================================ */
+function render() {
+  activeJob = state.jobs.find(j => j.id === state.activeId) || null;
+  renderJobList();
+
+  if (!activeJob) {
+    jobView.hidden = true;
+    $('#emptyState').hidden = false;
+    return;
+  }
+  $('#emptyState').hidden = true;
+  jobView.hidden = false;
+  jobView.innerHTML = jobHTML(activeJob);
+  $$('textarea', jobView).forEach(autoGrow);
+  recalc();
+}
+
+function jobHTML(j) {
+  return `
+  <div class="job-header">
+    <button class="icon-btn menu-btn no-print" data-action="menu" aria-label="Show job list">☰</button>
+    <input class="name-input" data-bind="name" value="${esc(j.name)}" placeholder="Job name" aria-label="Job name">
+    <select data-bind="status" aria-label="Job status">
+      ${STATUS_OPTIONS.map(o => `<option value="${o.value}"${o.value === j.status ? ' selected' : ''}>${o.label}</option>`).join('')}
+    </select>
+    <button class="icon-btn no-print" data-action="print"     title="Print / Save as PDF" aria-label="Print">🖨</button>
+    <button class="icon-btn no-print" data-action="duplicate" title="Duplicate this job"  aria-label="Duplicate">⧉</button>
+    <button class="icon-btn danger no-print" data-action="delete-job" title="Delete this job" aria-label="Delete">🗑</button>
+  </div>
+
+  <div class="section">
+    <h2>Details</h2>
+    <div class="row">
+      <div class="field">
+        <label for="f-pm">Project Manager</label>
+        <input id="f-pm" data-bind="pm" value="${esc(j.pm)}" placeholder="Name">
+      </div>
+      <div class="field">
+        <label for="f-addr">Address</label>
+        <textarea id="f-addr" data-bind="address" placeholder="Street, City, State ZIP">${esc(j.address)}</textarea>
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px">
+      <label for="f-notes">Notes</label>
+      <textarea id="f-notes" data-bind="notes" rows="6" placeholder="Measurements, scope, site notes…">${esc(j.notes)}</textarea>
+    </div>
+  </div>
+
+  ${j.sections.map(sectionHTML).join('')}
+
+  <button class="add-row-btn no-print" data-action="add-section" style="margin-bottom:14px">+ Add Materials Section</button>
+
+  <div class="section internal">
+    <h2>Materials Adjustments</h2>
+    <div class="row">
+      <div class="field">
+        <label for="f-up">Upcharge ($)</label>
+        <input id="f-up" class="num" type="number" step="0.01" inputmode="decimal"
+               data-bind="materialsUpcharge" value="${j.materialsUpcharge}">
+        <span class="hint">Markup added on top of the supplier total.</span>
+      </div>
+      <div class="field">
+        <label for="f-buf">Buffer ($)</label>
+        <input id="f-buf" class="num" type="number" step="0.01" inputmode="decimal"
+               data-bind="buffer" value="${j.buffer}">
+        <span class="hint">Contingency for waste, extras, price swings.</span>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" data-bind="taxIncluded"${j.taxIncluded ? ' checked' : ''}> Tax already included in prices</label>
+        <input class="num" type="number" step="0.01" inputmode="decimal" placeholder="Tax rate %"
+               data-bind="taxRate" value="${j.taxRate}"${j.taxIncluded ? ' disabled' : ''}>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" data-bind="deliveryIncluded"${j.deliveryIncluded ? ' checked' : ''}> Delivery included</label>
+        <input class="num" type="number" step="0.01" inputmode="decimal" placeholder="Delivery cost $"
+               data-bind="deliveryCost" value="${j.deliveryCost}"${j.deliveryIncluded ? ' disabled' : ''}>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span>Labor</span><span class="h-total" data-sum="laborRevenue"></span></h2>
+    <div class="row">
+      <div class="field internal">
+        <label for="f-sub">Subcontractor</label>
+        <input id="f-sub" data-bind="labor.subContractor" value="${esc(j.labor.subContractor)}" placeholder="Name / crew">
+      </div>
+      <div class="field internal">
+        <label for="f-subc">Subcontractor Cost ($)</label>
+        <input id="f-subc" class="num" type="number" step="0.01" inputmode="decimal"
+               data-bind="labor.subContractorCost" value="${j.labor.subContractorCost}">
+        <span class="hint">What we pay out — an expense.</span>
+      </div>
+      <div class="field">
+        <label for="f-demo">Demo Charge ($)</label>
+        <input id="f-demo" class="num" type="number" step="0.01" inputmode="decimal"
+               data-bind="labor.demoCost" value="${j.labor.demoCost}">
+        <span class="hint">What we bill the customer.</span>
+      </div>
+      <div class="field">
+        <label for="f-inst">Install Charge ($)</label>
+        <input id="f-inst" class="num" type="number" step="0.01" inputmode="decimal"
+               data-bind="labor.installCost" value="${j.labor.installCost}">
+        <span class="hint">What we bill the customer.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span>Summary</span>
+      <label class="check no-print" style="font-size:12px;font-weight:600">
+        <input type="checkbox" data-print-internal${state.printInternal ? ' checked' : ''}> Include our costs when printing
+      </label>
+    </h2>
+    <div class="totals-grid">
+      <div>
+        <div class="tot-head">Customer Price</div>
+        <div class="tot-line internal"><span class="label">Materials subtotal</span><span class="val" data-sum="subtotal"></span></div>
+        <div class="tot-line internal" data-row="tax" hidden><span class="label">Tax (<span data-sum="taxRate"></span>%)</span><span class="val" data-sum="tax"></span></div>
+        <div class="tot-line internal" data-row="delivery" hidden><span class="label">Delivery</span><span class="val" data-sum="delivery"></span></div>
+        <div class="tot-line internal"><span class="label">Upcharge</span><span class="val" data-sum="upcharge"></span></div>
+        <div class="tot-line internal"><span class="label">Buffer</span><span class="val" data-sum="buffer"></span></div>
+        <div class="tot-line strong"><span class="label">Materials total</span><span class="val" data-sum="materialsTotal"></span></div>
+        <div class="tot-line strong"><span class="label">Labor charge</span><span class="val" data-sum="laborRevenue2"></span></div>
+        <div class="tot-line total"><span class="label">GRAND TOTAL</span><span class="val" data-sum="grandTotal"></span></div>
+      </div>
+      <div class="internal">
+        <div class="tot-head">Our Side</div>
+        <div class="tot-line"><span class="label">Materials cost</span><span class="val" data-sum="materialsCost"></span></div>
+        <div class="tot-line"><span class="label">Subcontractor</span><span class="val" data-sum="subCost"></span></div>
+        <div class="tot-line"><span class="label"><label for="f-mine">My expenses</label></span>
+          <span class="val"><input id="f-mine" class="num" type="number" step="0.01" inputmode="decimal"
+                data-bind="myExpenses" value="${j.myExpenses}"></span></div>
+        <div class="tot-line strong"><span class="label">Total expenses</span><span class="val" data-sum="expenses"></span></div>
+        <div class="tot-line profit strong" data-row="profit"><span class="label">Profit</span><span class="val" data-sum="profit"></span></div>
+        <div class="tot-line profit strong" data-row="marginRow"><span class="label">Margin</span><span class="val" data-sum="margin"></span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function sectionHTML(s, si) {
+  return `
+  <div class="section" data-section="${si}">
+    <h2>
+      <input class="section-title-input" data-section-title="${si}" value="${esc(s.title)}" aria-label="Section name">
+      <span class="h-total" data-section-total="${si}"></span>
+    </h2>
+    <div class="table-wrap">
+      <table class="items">
+        <thead><tr>
+          <th class="qty-col">Qty</th><th>Description</th>
+          <th class="price-col">Unit $</th><th class="total-col">Total</th>
+          <th class="act-col no-print"><span class="sr-only"></span></th>
+        </tr></thead>
+        <tbody>
+          ${s.items.length ? s.items.map((it, ii) => `
+          <tr>
+            <td class="qty-col"><input class="num" type="number" step="any" inputmode="decimal"
+                  data-si="${si}" data-ii="${ii}" data-k="qty" value="${it.qty}" aria-label="Quantity"></td>
+            <td class="desc-col"><input data-si="${si}" data-ii="${ii}" data-k="desc" value="${esc(it.desc)}"
+                  placeholder="Description" aria-label="Description"></td>
+            <td class="price-col"><input class="num" type="number" step="0.01" inputmode="decimal"
+                  data-si="${si}" data-ii="${ii}" data-k="price" value="${it.price}" aria-label="Unit price"></td>
+            <td class="total-col" data-line-total="${si}-${ii}"></td>
+            <td class="act-col no-print"><button class="del-row" data-action="del-item"
+                  data-si="${si}" data-ii="${ii}" title="Remove line" aria-label="Remove line">✕</button></td>
+          </tr>`).join('')
+          : `<tr class="rows-empty"><td colspan="5">No lines yet.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <button class="add-row-btn no-print" data-action="add-item" data-si="${si}">+ Add line</button>
+    <button class="add-row-btn subtle no-print" data-action="del-section" data-si="${si}">− Remove section</button>
+  </div>`;
+}
+
+/* ============================================================
+   Recalculate in place — never rebuilds inputs, so typing is safe
+   ============================================================ */
+function recalc() {
+  const j = activeJob;
+  if (!j) return;
+
+  j.sections.forEach((s, si) => {
+    s.items.forEach((it, ii) => {
+      setText(`[data-line-total="${si}-${ii}"]`, money(lineTotal(it)));
+    });
+    setText(`[data-section-total="${si}"]`, money(sectionTotal(s)));
+  });
+
+  const sums = {
+    subtotal:      money(itemsSubtotal(j)),
+    taxRate:       String(n(j.taxRate)),
+    tax:           money(taxAmount(j)),
+    delivery:      money(deliveryAmount(j)),
+    upcharge:      money(j.materialsUpcharge),
+    buffer:        money(j.buffer),
+    materialsTotal:money(materialsTotal(j)),
+    laborRevenue:  money(laborRevenue(j)),
+    laborRevenue2: money(laborRevenue(j)),
+    grandTotal:    money(grandTotal(j)),
+    materialsCost: money(materialsTotal(j)),
+    subCost:       money(j.labor.subContractorCost),
+    expenses:      money(totalExpenses(j)),
+    profit:        money(profit(j)),
+    margin:        margin(j).toFixed(1) + '%',
+  };
+  for (const k in sums) setText(`[data-sum="${k}"]`, sums[k]);
+
+  toggleRow('tax', !j.taxIncluded);
+  toggleRow('delivery', !j.deliveryIncluded);
+  const loss = profit(j) < 0;
+  $$('[data-row="profit"], [data-row="marginRow"]', jobView).forEach(el => el.classList.toggle('negative', loss));
+
+  // Keep this job's sidebar row in sync without rebuilding the list.
+  setText(`[data-job-name="${j.id}"]`, j.name || 'Untitled');
+  setText(`[data-job-meta="${j.id}"]`, jobMeta(j));
+  const dot = $(`[data-dot="${j.id}"]`);
+  if (dot) dot.className = 'status-dot status-' + j.status;
+}
+
+function setText(sel, txt) {
+  const el = sel.startsWith('[data-job') ? $(sel, jobListEl) : $(sel, jobView);
+  if (el) el.textContent = txt;
+}
+function toggleRow(name, show) {
+  const el = $(`[data-row="${name}"]`, jobView);
+  if (el) el.hidden = !show;
+}
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.max(44, el.scrollHeight) + 'px';
+}
+function touch() { if (activeJob) activeJob.updatedAt = Date.now(); }
+function applyPrintMode() { document.body.classList.toggle('print-internal', !!state.printInternal); }
+
+/* ============================================================
+   Events — delegated, so re-renders never orphan a handler
+   ============================================================ */
+function setPath(obj, path, val) {
+  const parts = path.split('.');
+  let o = obj;
+  for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+  o[parts[parts.length - 1]] = val;
+}
+
+jobView.addEventListener('input', (e) => {
+  const t = e.target;
+  if (!activeJob) return;
+
+  if (t.dataset.bind) {
+    const isNum = t.type === 'number';
+    setPath(activeJob, t.dataset.bind, isNum ? n(t.value) : t.value);
+    if (t.tagName === 'TEXTAREA') autoGrow(t);
+  } else if (t.dataset.sectionTitle !== undefined) {
+    activeJob.sections[+t.dataset.sectionTitle].title = t.value;
+  } else if (t.dataset.k) {
+    const it = activeJob.sections[+t.dataset.si].items[+t.dataset.ii];
+    it[t.dataset.k] = t.dataset.k === 'desc' ? t.value : n(t.value);
+  } else return;
+
+  touch();
+  debouncedSave();
+  recalc();
+});
+
+jobView.addEventListener('change', (e) => {
+  const t = e.target;
+  if (!activeJob) return;
+
+  if (t.dataset.printInternal !== undefined) {
+    state.printInternal = t.checked;
+    applyPrintMode();
+    saveState();
+    return;
+  }
+  if (t.type === 'checkbox' && t.dataset.bind) {
+    setPath(activeJob, t.dataset.bind, t.checked);
+    // The paired amount field is only editable when the cost is NOT included.
+    const partner = { taxIncluded: 'taxRate', deliveryIncluded: 'deliveryCost' }[t.dataset.bind];
+    const field = $(`[data-bind="${partner}"]`, jobView);
+    if (field) field.disabled = t.checked;
+  } else if (t.tagName === 'SELECT' && t.dataset.bind) {
+    setPath(activeJob, t.dataset.bind, t.value);
+  } else return;
+
+  touch();
+  debouncedSave();
+  recalc();
+});
+
+jobView.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || !activeJob) return;
+  const si = +btn.dataset.si, ii = +btn.dataset.ii;
+
+  switch (btn.dataset.action) {
+    case 'menu':      toggleSidebar(true); break;
+    case 'print':     flushSave(); window.print(); break;
+    case 'duplicate': duplicateJob(); break;
+    case 'delete-job':deleteJob(); break;
+    case 'add-item':  addItem(si); break;
+    case 'del-item':  activeJob.sections[si].items.splice(ii, 1); commit(); break;
+    case 'add-section':
+      activeJob.sections.push({ id: uid('sec'), title: 'New Section', items: [] });
+      commit();
+      break;
+    case 'del-section': {
+      const s = activeJob.sections[si];
+      if (s.items.length && !confirm(`Remove "${s.title}" and its ${s.items.length} line(s)?`)) return;
+      activeJob.sections.splice(si, 1);
+      commit();
+      break;
+    }
+  }
+});
+
+// Enter in a line field jumps to the next line, adding one at the end.
+jobView.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target.dataset.k) return;
+  e.preventDefault();
+  const si = +e.target.dataset.si, ii = +e.target.dataset.ii;
+  if (ii === activeJob.sections[si].items.length - 1) addItem(si);
+  else $(`[data-si="${si}"][data-ii="${ii + 1}"][data-k="desc"]`, jobView)?.focus();
+});
+
+function addItem(si) {
+  activeJob.sections[si].items.push({ id: uid('item'), qty: 1, desc: '', price: 0 });
+  commit();
+  const ii = activeJob.sections[si].items.length - 1;
+  $(`[data-si="${si}"][data-ii="${ii}"][data-k="desc"]`, jobView)?.focus();
+}
+
+/** Structural change: persist and rebuild the DOM (indices shifted). */
+function commit() { touch(); saveState(); render(); }
+
+/* ---------- Sidebar ---------- */
+jobListEl.addEventListener('click', (e) => {
+  const row = e.target.closest('[data-job]');
+  if (row) selectJob(row.dataset.job);
+});
+jobListEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('[data-job]');
+  if (row) { e.preventDefault(); selectJob(row.dataset.job); }
+});
 
 function selectJob(id) {
+  if (id === state.activeId) { toggleSidebar(false); return; }
+  flushSave();
   state.activeId = id;
   saveState();
   render();
+  toggleSidebar(false);
+  $('#main').scrollTop = 0;
 }
 
-function render() {
-  renderJobList();
-  activeJob = state.jobs.find(j => j.id === state.activeId);
-  const view = document.getElementById('jobView');
-  const empty = document.getElementById('emptyState');
-  if (!activeJob) {
-    view.style.display = 'none';
-    empty.style.display = 'flex';
-    return;
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || jobView.contains(btn)) return;
+  switch (btn.dataset.action) {
+    case 'new-job': newJob(); break;
+    case 'export':  exportBackup(); break;
+    case 'import':  $('#importFile').click(); break;
   }
-  empty.style.display = 'none';
-  view.style.display = 'block';
-  view.innerHTML = renderJob(activeJob);
+});
+backdrop.addEventListener('click', () => toggleSidebar(false));
+$('#searchInput').addEventListener('input', renderJobList);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') toggleSidebar(false);
+});
+
+function toggleSidebar(open) {
+  sidebarEl.classList.toggle('open', open);
+  backdrop.classList.toggle('show', open);
 }
 
-function renderJob(j) {
-  const statusSel = STATUS_OPTIONS.map(o =>
-    `<option value="${o.value}" ${o.value===j.status?'selected':''}>${o.label}</option>`
-  ).join('');
-
-  return `
-    <div class="job-header no-print-controls">
-      <input class="name-input" value="${escapeAttr(j.name)}" oninput="updateField('name', this.value)">
-      <select onchange="updateField('status', this.value)">${statusSel}</select>
-      <button class="icon-btn no-print" onclick="window.print()" title="Print / Save PDF">🖨</button>
-      <button class="icon-btn no-print" onclick="duplicateJob()" title="Duplicate">⧉</button>
-      <button class="icon-btn danger no-print" onclick="deleteJob()" title="Delete">🗑</button>
-    </div>
-
-    <div class="section">
-      <h2>Details</h2>
-      <div class="row">
-        <div class="field">
-          <label>Project Manager</label>
-          <input value="${escapeAttr(j.pm)}" oninput="updateField('pm', this.value)">
-        </div>
-        <div class="field">
-          <label>Address</label>
-          <textarea oninput="updateField('address', this.value)">${escapeHtml(j.address)}</textarea>
-        </div>
-      </div>
-      <div class="field">
-        <label>Notes</label>
-        <textarea rows="6" oninput="updateField('notes', this.value)">${escapeHtml(j.notes)}</textarea>
-      </div>
-    </div>
-
-    ${j.sections.map((s, si) => renderSection(s, si)).join('')}
-
-    <div class="section no-print-controls no-print">
-      <button class="add-row-btn" onclick="addSection()">+ Add Materials Section</button>
-    </div>
-
-    <div class="section">
-      <h2>Materials Adjustments</h2>
-      <div class="row">
-        <div class="field">
-          <label>Upcharge ($)</label>
-          <input type="number" step="0.01" value="${j.materialsUpcharge}" oninput="updateField('materialsUpcharge', +this.value)">
-        </div>
-        <div class="field">
-          <label>Buffer ($)</label>
-          <input type="number" step="0.01" value="${j.buffer}" oninput="updateField('buffer', +this.value)">
-        </div>
-        <div class="field">
-          <label><input type="checkbox" ${j.taxIncluded?'checked':''} onchange="updateField('taxIncluded', this.checked)"> Tax already included in item prices</label>
-          ${j.taxIncluded ? '' : `<input type="number" step="0.01" placeholder="Tax rate %" value="${j.taxRate}" oninput="updateField('taxRate', +this.value)">`}
-        </div>
-        <div class="field">
-          <label><input type="checkbox" ${j.deliveryIncluded?'checked':''} onchange="updateField('deliveryIncluded', this.checked)"> Delivery included</label>
-          ${j.deliveryIncluded ? '' : `<input type="number" step="0.01" placeholder="Delivery cost $" value="${j.deliveryCost}" oninput="updateField('deliveryCost', +this.value)">`}
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Labor <span class="h-total">${money(laborRevenue(j))}</span></h2>
-      <div class="row">
-        <div class="field">
-          <label>Subcontractor</label>
-          <input value="${escapeAttr(j.labor.subContractor)}" oninput="updateLabor('subContractor', this.value)">
-        </div>
-        <div class="field">
-          <label>Sub. Cost ($) — our expense</label>
-          <input type="number" step="0.01" value="${j.labor.subContractorCost}" oninput="updateLabor('subContractorCost', +this.value)">
-        </div>
-        <div class="field">
-          <label>Demo Charge ($) — we charge</label>
-          <input type="number" step="0.01" value="${j.labor.demoCost}" oninput="updateLabor('demoCost', +this.value)">
-        </div>
-        <div class="field">
-          <label>Install Charge ($) — we charge</label>
-          <input type="number" step="0.01" value="${j.labor.installCost}" oninput="updateLabor('installCost', +this.value)">
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Summary</h2>
-      <div class="totals-grid">
-        <div>
-          <div class="tot-line"><span class="label">Materials subtotal</span><span class="val">${money(itemsSubtotal(j.sections))}</span></div>
-          <div class="tot-line"><span class="label">Upcharge</span><span class="val">${money(j.materialsUpcharge)}</span></div>
-          <div class="tot-line"><span class="label">Buffer</span><span class="val">${money(j.buffer)}</span></div>
-          ${j.taxIncluded ? '' : `<div class="tot-line"><span class="label">Tax (${j.taxRate}%)</span><span class="val">${money(itemsSubtotal(j.sections) * (num(j.taxRate)/100))}</span></div>`}
-          ${j.deliveryIncluded ? '' : `<div class="tot-line"><span class="label">Delivery</span><span class="val">${money(j.deliveryCost)}</span></div>`}
-          <div class="tot-line"><span class="label"><strong>Materials total</strong></span><span class="val">${money(materialsTotal(j))}</span></div>
-          <div class="tot-line"><span class="label">Labor charge</span><span class="val">${money(laborRevenue(j))}</span></div>
-          <div class="tot-line grand"><span>GRAND TOTAL</span><span>${money(grandTotal(j))}</span></div>
-        </div>
-        <div>
-          <div class="tot-line"><span class="label">My expenses</span><span class="val">
-            <input type="number" step="0.01" value="${j.myExpenses}" oninput="updateField('myExpenses', +this.value)"></span></div>
-          <div class="tot-line"><span class="label">Subcontractor cost</span><span class="val">${money(j.labor.subContractorCost)}</span></div>
-          <div class="tot-line"><span class="label">Materials cost (to us)</span><span class="val">${money(materialsTotal(j))}</span></div>
-          <div class="tot-line"><span class="label"><strong>Total expenses</strong></span><span class="val">${money(jobExpenses(j))}</span></div>
-          <div class="tot-line profit"><span class="label"><strong>Profit</strong></span><span class="val">${money(jobProfit(j))}</span></div>
-          <div class="tot-line profit"><span class="label"><strong>Margin</strong></span><span class="val">${jobMargin(j).toFixed(1)}%</span></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderSection(s, si) {
-  const total = s.items.reduce((a,i) => a + num(i.qty)*num(i.price), 0);
-  return `
-    <div class="section">
-      <h2>
-        <span>
-          <input value="${escapeAttr(s.title)}" style="background:transparent;border:none;color:var(--muted);font-weight:600;text-transform:uppercase;padding:0;font-size:15px;letter-spacing:0.5px;"
-            oninput="updateSection(${si}, 'title', this.value)">
-        </span>
-        <span class="h-total">${money(total)}</span>
-      </h2>
-      <table class="items">
-        <thead>
-          <tr><th class="qty-col">Qty</th><th>Description</th><th class="price-col">Unit $</th><th class="total-col">Line Total</th><th class="actions-col no-print"></th></tr>
-        </thead>
-        <tbody>
-          ${s.items.map((it, ii) => `
-            <tr>
-              <td class="qty-col"><input type="number" step="any" value="${it.qty}" oninput="updateItem(${si},${ii},'qty',+this.value)"></td>
-              <td><input value="${escapeAttr(it.desc)}" oninput="updateItem(${si},${ii},'desc',this.value)"></td>
-              <td class="price-col"><input type="number" step="0.01" value="${it.price}" oninput="updateItem(${si},${ii},'price',+this.value)"></td>
-              <td class="total-col">${money(num(it.qty)*num(it.price))}</td>
-              <td class="actions-col no-print"><button class="del-row" onclick="deleteItem(${si},${ii})" title="Remove">✕</button></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <button class="add-row-btn no-print" onclick="addItem(${si})">+ Add line</button>
-      <button class="add-row-btn no-print" onclick="deleteSection(${si})" style="color:var(--muted);margin-top:4px;">− Remove section</button>
-    </div>
-  `;
-}
-
-/* ---------- Actions ---------- */
-function updateField(k, v) { activeJob[k] = v; debouncedSave(); refreshTotals(); }
-function updateLabor(k, v) { activeJob.labor[k] = v; debouncedSave(); refreshTotals(); }
-function updateSection(si, k, v) { activeJob.sections[si][k] = v; debouncedSave(); refreshTotals(); }
-function updateItem(si, ii, k, v) {
-  activeJob.sections[si].items[ii][k] = v;
-  debouncedSave();
-  refreshTotals();
-}
-function addItem(si) {
-  activeJob.sections[si].items.push({ id: uid(), qty: 1, desc: '', price: 0 });
-  saveState();
-  render();
-}
-function deleteItem(si, ii) {
-  activeJob.sections[si].items.splice(ii, 1);
-  saveState();
-  render();
-}
-function addSection() {
-  activeJob.sections.push({ id: 's_'+uid(), title: 'New Section', items: [] });
-  saveState();
-  render();
-}
-function deleteSection(si) {
-  if (!confirm('Remove this section and all its lines?')) return;
-  activeJob.sections.splice(si, 1);
-  saveState();
-  render();
-}
 function newJob() {
+  flushSave();
   const j = blankJob();
   state.jobs.push(j);
   state.activeId = j.id;
   saveState();
   render();
+  toggleSidebar(false);
+  $('.name-input', jobView)?.select();
 }
+
 function duplicateJob() {
   const copy = JSON.parse(JSON.stringify(activeJob));
-  copy.id = uid();
-  copy.createdAt = Date.now();
+  copy.id = uid('job');
+  copy.createdAt = copy.updatedAt = Date.now();
   copy.name = activeJob.name + ' (copy)';
+  copy.sections.forEach(s => { s.id = uid('sec'); s.items.forEach(it => { it.id = uid('item'); }); });
   state.jobs.push(copy);
   state.activeId = copy.id;
   saveState();
   render();
+  $('.name-input', jobView)?.select();
 }
+
 function deleteJob() {
-  if (!confirm('Delete "'+activeJob.name+'"? This can\'t be undone.')) return;
-  state.jobs = state.jobs.filter(j => j.id !== activeJob.id);
-  state.activeId = state.jobs[0]?.id || null;
+  if (!confirm(`Delete "${activeJob.name}"?\n\nThis cannot be undone.`)) return;
+  const i = state.jobs.findIndex(j => j.id === activeJob.id);
+  state.jobs.splice(i, 1);
+  state.activeId = state.jobs[Math.min(i, state.jobs.length - 1)]?.id ?? null;
   saveState();
   render();
 }
 
-/* Update totals without full re-render (keeps input focus & cursor) */
-function refreshTotals() {
-  const j = activeJob;
-  if (!j) return;
-  // Update section header totals
-  document.querySelectorAll('.section').forEach((el, idx) => {
-    // skipping non-section headers is fine — we just recompute all displayed money spots via full re-render for section totals
-  });
-  // Simplest correct approach: re-render summary block and sidebar totals only.
-  // But to keep it simple and always correct, do a light re-render of section h-totals + summary.
-  j.sections.forEach((s, si) => {
-    const total = s.items.reduce((a,i) => a + num(i.qty)*num(i.price), 0);
-    // update line-total cells
-    const sectionEls = document.querySelectorAll('.section');
-    // We can't reliably index by DOM offset here without more code, so do a full re-render
-  });
-  // Full re-render is easiest; but re-rendering blurs the active input. We work around by
-  // re-rendering only if focus is not inside an input, otherwise we update a few live cells:
-  if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-    updateLiveCells();
-    updateSidebarTotalsOnly();
-  } else {
-    render();
-  }
-}
-function updateLiveCells() {
-  const j = activeJob;
-  // Update line totals inline
-  const sections = document.querySelectorAll('#jobView > .section');
-  // First section is Details; then sections; last few are adjustments/labor/summary.
-  // Rather than fragile indexing, mark each item row with a unique id in future. For now update summary only.
-  const summary = document.querySelector('#jobView .section:last-child .totals-grid');
-  if (summary) {
-    summary.parentElement.parentElement.replaceWith(makeSummaryNode(j));
-  }
-}
-function makeSummaryNode(j) {
-  const div = document.createElement('div');
-  div.className = 'section';
-  div.innerHTML = `
-    <h2>Summary</h2>
-    <div class="totals-grid">
-      <div>
-        <div class="tot-line"><span class="label">Materials subtotal</span><span class="val">${money(itemsSubtotal(j.sections))}</span></div>
-        <div class="tot-line"><span class="label">Upcharge</span><span class="val">${money(j.materialsUpcharge)}</span></div>
-        <div class="tot-line"><span class="label">Buffer</span><span class="val">${money(j.buffer)}</span></div>
-        ${j.taxIncluded ? '' : `<div class="tot-line"><span class="label">Tax (${j.taxRate}%)</span><span class="val">${money(itemsSubtotal(j.sections) * (num(j.taxRate)/100))}</span></div>`}
-        ${j.deliveryIncluded ? '' : `<div class="tot-line"><span class="label">Delivery</span><span class="val">${money(j.deliveryCost)}</span></div>`}
-        <div class="tot-line"><span class="label"><strong>Materials total</strong></span><span class="val">${money(materialsTotal(j))}</span></div>
-        <div class="tot-line"><span class="label">Labor charge</span><span class="val">${money(laborRevenue(j))}</span></div>
-        <div class="tot-line grand"><span>GRAND TOTAL</span><span>${money(grandTotal(j))}</span></div>
-      </div>
-      <div>
-        <div class="tot-line"><span class="label">My expenses</span><span class="val">
-          <input type="number" step="0.01" value="${j.myExpenses}" oninput="updateField('myExpenses', +this.value)"></span></div>
-        <div class="tot-line"><span class="label">Subcontractor cost</span><span class="val">${money(j.labor.subContractorCost)}</span></div>
-        <div class="tot-line"><span class="label">Materials cost (to us)</span><span class="val">${money(materialsTotal(j))}</span></div>
-        <div class="tot-line"><span class="label"><strong>Total expenses</strong></span><span class="val">${money(jobExpenses(j))}</span></div>
-        <div class="tot-line profit"><span class="label"><strong>Profit</strong></span><span class="val">${money(jobProfit(j))}</span></div>
-        <div class="tot-line profit"><span class="label"><strong>Margin</strong></span><span class="val">${jobMargin(j).toFixed(1)}%</span></div>
-      </div>
-    </div>
-  `;
-  return div;
-}
-function updateSidebarTotalsOnly() {
-  // Re-render sidebar list to show updated $ totals
-  renderJobList();
+/* ============================================================
+   Backup / Restore
+   ============================================================ */
+function exportBackup() {
+  flushSave();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `skylab-estimates-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`✓ Backed up ${state.jobs.length} job(s)`);
 }
 
-/* ---------- Backup / Restore ---------- */
-function exportBackup() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const date = new Date().toISOString().split('T')[0];
-  a.download = `skylab-estimates-${date}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-function importBackup() {
-  document.getElementById('importFile').click();
-}
-document.getElementById('importFile').addEventListener('change', (e) => {
+$('#importFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
+    let incoming;
     try {
-      const imported = JSON.parse(reader.result);
-      if (!imported.jobs) throw new Error('Not a valid backup');
-      if (confirm(`Import ${imported.jobs.length} job(s)? This will REPLACE your current data.`)) {
-        state = imported;
-        saveState();
-        render();
-      }
+      incoming = migrate(JSON.parse(reader.result));
     } catch (err) {
-      alert('Could not read backup: ' + err.message);
+      alert('Could not read that backup:\n' + err.message);
+      return;
     }
+    const msg = `Restore ${incoming.jobs.length} job(s)?\n\n` +
+                `This REPLACES the ${state.jobs.length} job(s) currently on this device.`;
+    if (!confirm(msg)) return;
+    try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(state)); } catch (_) {}
+    state = incoming;
+    saveState();
+    render();
+    toast(`✓ Restored ${state.jobs.length} job(s)`);
   };
+  reader.onerror = () => alert('Could not read that file.');
   reader.readAsText(file);
+  e.target.value = '';   // allow re-picking the same file
 });
 
-/* ---------- Utils ---------- */
-function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(s) { return escapeHtml(s); }
+/* ============================================================
+   Boot
+   ============================================================ */
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ---------- Boot ---------- */
+const loaded = loadState();
+if (loaded) {
+  state = loaded;
+} else {
+  const dennis = seedDennisDr();
+  state = { version: SCHEMA, jobs: [dennis], activeId: dennis.id, printInternal: false };
+  saveState();
+}
+applyPrintMode();
 render();
 </script>
 </body>

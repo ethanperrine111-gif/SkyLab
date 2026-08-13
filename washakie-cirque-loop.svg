@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 861 1020" width="861" height="1020" font-family="Georgia, 'Iowan Old Style', serif">
+<title>Washakie Pass to Cirque of the Towers Loop</title>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0 1 L8 5 L0 9 Z" fill="#A63A22"/>
+  </marker>
+</defs>
+<rect width="861" height="1020" fill="#FBF8F1"/>
+<g stroke="#DCD3BF" stroke-width="0.6" fill="none">
+<line x1="64" y1="841.8" x2="797" y2="841.8"/>
+<line x1="64" y1="569.8" x2="797" y2="569.8"/>
+<line x1="64" y1="297.9" x2="797" y2="297.9"/>
+<line x1="257.7" y1="64" x2="257.7" y2="956"/>
+<line x1="457.5" y1="64" x2="457.5" y2="956"/>
+<line x1="657.2" y1="64" x2="657.2" y2="956"/>
+</g>
+<g font-size="10" fill="#A8987A" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.5">
+<text x="56" y="844.8" text-anchor="end">42.70&#176;N</text>
+<text x="56" y="572.8" text-anchor="end">42.75&#176;N</text>
+<text x="56" y="300.9" text-anchor="end">42.80&#176;N</text>
+<text x="257.7" y="976" text-anchor="middle">109.25&#176;W</text>
+<text x="457.5" y="976" text-anchor="middle">109.20&#176;W</text>
+<text x="657.2" y="976" text-anchor="middle">109.15&#176;W</text>
+</g>
+<rect x="64" y="64" width="733" height="892" fill="none" stroke="#23201A" stroke-width="1"/>
+<path d="M 174.65 905.96 C 172.32 905.05, 157.61 871.60, 153.88 863.54 C 150.15 855.47, 133.24 819.12, 129.91 809.15 C 126.58 799.17, 115.93 754.76, 113.93 743.88 C 111.93 733.00, 106.94 689.49, 105.94 678.61 C 104.94 667.73, 101.62 623.77, 101.95 613.34 C 102.28 602.92, 107.61 563.94, 109.94 553.51 C 112.27 543.09, 125.58 499.58, 129.91 488.24 C 134.24 476.91, 156.21 428.87, 161.87 417.54 C 167.53 406.21, 189.83 362.24, 197.82 352.27 C 205.81 342.30, 247.08 306.94, 257.74 297.88 C 268.39 288.81, 313.99 252.55, 325.64 243.49 C 337.29 234.42, 386.89 196.80, 397.54 189.10 C 408.20 181.39, 445.15 155.10, 453.47 151.02 C 461.79 146.95, 490.09 140.15, 497.41 140.15 C 504.73 140.15, 533.03 151.02, 541.35 151.02 C 549.67 151.02, 588.28 142.41, 597.27 140.15 C 606.26 137.88, 641.55 124.74, 649.20 123.83 C 656.86 122.92, 683.49 124.74, 689.15 129.27 C 694.81 133.80, 714.11 169.61, 717.11 178.22 C 720.10 186.83, 726.76 224.00, 725.10 232.61 C 723.43 241.22, 702.80 274.31, 697.14 281.56 C 691.48 288.81, 664.51 312.84, 657.19 319.63 C 649.87 326.43, 616.91 355.89, 609.26 363.15 C 601.60 370.40, 571.97 399.41, 565.32 406.66 C 558.66 413.91, 535.29 443.01, 529.37 450.17 C 523.44 457.33, 499.21 486.25, 494.21 492.60 C 489.22 498.94, 473.51 521.24, 469.45 526.32 C 465.39 531.39, 448.81 548.53, 445.48 553.51 C 442.15 558.50, 432.16 580.25, 429.50 586.15 C 426.84 592.04, 416.19 617.87, 413.52 624.22 C 410.86 630.57, 402.21 655.49, 397.54 662.29 C 392.88 669.09, 365.26 698.10, 357.60 705.80 C 349.94 713.51, 313.99 747.05, 305.67 754.76 C 297.35 762.46, 265.72 791.02, 257.74 798.27 C 249.75 805.52, 216.13 835.43, 209.80 841.78 C 203.48 848.13, 184.77 869.07, 181.84 874.41 C 178.91 879.76, 176.98 906.87, 174.65 905.96 Z" fill="none" stroke="#FBF8F1" stroke-width="7" stroke-linejoin="round"/>
+<path d="M 174.65 905.96 C 172.32 905.05, 157.61 871.60, 153.88 863.54 C 150.15 855.47, 133.24 819.12, 129.91 809.15 C 126.58 799.17, 115.93 754.76, 113.93 743.88 C 111.93 733.00, 106.94 689.49, 105.94 678.61 C 104.94 667.73, 101.62 623.77, 101.95 613.34 C 102.28 602.92, 107.61 563.94, 109.94 553.51 C 112.27 543.09, 125.58 499.58, 129.91 488.24 C 134.24 476.91, 156.21 428.87, 161.87 417.54 C 167.53 406.21, 189.83 362.24, 197.82 352.27 C 205.81 342.30, 247.08 306.94, 257.74 297.88 C 268.39 288.81, 313.99 252.55, 325.64 243.49 C 337.29 234.42, 386.89 196.80, 397.54 189.10 C 408.20 181.39, 445.15 155.10, 453.47 151.02 C 461.79 146.95, 490.09 140.15, 497.41 140.15 C 504.73 140.15, 533.03 151.02, 541.35 151.02 C 549.67 151.02, 588.28 142.41, 597.27 140.15 C 606.26 137.88, 641.55 124.74, 649.20 123.83 C 656.86 122.92, 683.49 124.74, 689.15 129.27 C 694.81 133.80, 714.11 169.61, 717.11 178.22 C 720.10 186.83, 726.76 224.00, 725.10 232.61 C 723.43 241.22, 702.80 274.31, 697.14 281.56 C 691.48 288.81, 664.51 312.84, 657.19 319.63 C 649.87 326.43, 616.91 355.89, 609.26 363.15 C 601.60 370.40, 571.97 399.41, 565.32 406.66 C 558.66 413.91, 535.29 443.01, 529.37 450.17 C 523.44 457.33, 499.21 486.25, 494.21 492.60 C 489.22 498.94, 473.51 521.24, 469.45 526.32 C 465.39 531.39, 448.81 548.53, 445.48 553.51 C 442.15 558.50, 432.16 580.25, 429.50 586.15 C 426.84 592.04, 416.19 617.87, 413.52 624.22 C 410.86 630.57, 402.21 655.49, 397.54 662.29 C 392.88 669.09, 365.26 698.10, 357.60 705.80 C 349.94 713.51, 313.99 747.05, 305.67 754.76 C 297.35 762.46, 265.72 791.02, 257.74 798.27 C 249.75 805.52, 216.13 835.43, 209.80 841.78 C 203.48 848.13, 184.77 869.07, 181.84 874.41 C 178.91 879.76, 176.98 906.87, 174.65 905.96 Z" fill="none" stroke="#A63A22" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="9 5"/>
+<g stroke="#A63A22" stroke-width="2.2" fill="none" marker-end="url(#a)">
+<line x1="105.3" y1="588.4" x2="106.6" y2="578.5"/>
+<line x1="421.4" y1="172.9" x2="429.6" y2="167.2"/>
+<line x1="700.6" y1="149.4" x2="705.6" y2="158.1"/>
+<line x1="590.8" y1="381.4" x2="583.7" y2="388.4"/>
+<line x1="407.5" y1="638.6" x2="403.6" y2="647.9"/>
+<line x1="199.1" y1="854.3" x2="192.6" y2="861.9"/>
+</g>
+<g>
+<circle cx="174.6" cy="906.0" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="174.6" cy="906.0" r="2.4" fill="#A63A22"/>
+<text x="188.6" y="902.0" text-anchor="start" font-size="14" fill="#23201A">Big Sandy Trailhead</text>
+<text x="188.6" y="916.0" text-anchor="start" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">9,085 ft</text>
+<circle cx="109.9" cy="553.5" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="109.9" cy="553.5" r="2.4" fill="#A63A22"/>
+<text x="123.9" y="557.5" text-anchor="start" font-size="14" fill="#23201A">Dads / Marms Lakes</text>
+<text x="123.9" y="571.5" text-anchor="start" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">9,900 ft</text>
+<circle cx="453.5" cy="151.0" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="453.5" cy="151.0" r="2.4" fill="#A63A22"/>
+<text x="440.5" y="147.0" text-anchor="end" font-size="14" fill="#23201A">Washakie Lake</text>
+<text x="440.5" y="161.0" text-anchor="end" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">10,363 ft</text>
+<circle cx="541.3" cy="151.0" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="541.3" cy="151.0" r="2.4" fill="#A63A22"/>
+<text x="541.3" y="125.0" text-anchor="middle" font-size="14" fill="#23201A">Washakie Pass</text>
+<text x="541.3" y="139.0" text-anchor="middle" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">11,611 ft</text>
+<circle cx="689.1" cy="129.3" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="689.1" cy="129.3" r="2.4" fill="#A63A22"/>
+<text x="675.1" y="149.3" text-anchor="end" font-size="14" fill="#23201A">Bears Ears Jct.</text>
+<text x="675.1" y="163.3" text-anchor="end" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">9,980 ft</text>
+<circle cx="657.2" cy="319.6" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="657.2" cy="319.6" r="2.4" fill="#A63A22"/>
+<text x="671.2" y="323.6" text-anchor="start" font-size="14" fill="#23201A">Lizard Head Plateau</text>
+<text x="671.2" y="337.6" text-anchor="start" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">11,864 ft</text>
+<circle cx="494.2" cy="492.6" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="494.2" cy="492.6" r="2.4" fill="#A63A22"/>
+<text x="509.2" y="497.6" text-anchor="start" font-size="14" fill="#23201A">Lonesome Lake (Cirque)</text>
+<text x="509.2" y="511.6" text-anchor="start" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">10,166 ft</text>
+<circle cx="445.5" cy="553.5" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="445.5" cy="553.5" r="2.4" fill="#A63A22"/>
+<text x="430.5" y="551.5" text-anchor="end" font-size="14" fill="#23201A">Jackass Pass</text>
+<text x="430.5" y="565.5" text-anchor="end" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">10,790 ft</text>
+<circle cx="397.5" cy="662.3" r="6.5" fill="#FBF8F1" stroke="#23201A" stroke-width="1.8"/>
+<circle cx="397.5" cy="662.3" r="2.4" fill="#A63A22"/>
+<text x="411.5" y="668.3" text-anchor="start" font-size="14" fill="#23201A">Big Sandy Lake</text>
+<text x="411.5" y="682.3" text-anchor="start" font-size="11" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">9,700 ft</text>
+</g>
+<g transform="translate(751 118)">
+<path d="M0 -26 L5 4 L0 -3 L-5 4 Z" fill="#23201A"/>
+<text y="22" text-anchor="middle" font-size="13" fill="#23201A" letter-spacing="1">N</text>
+</g>
+<g transform="translate(529 894)">
+<rect x="0" y="0" width="122.5" height="6" fill="#23201A"/>
+<rect x="122.5" y="0" width="122.5" height="6" fill="#FBF8F1" stroke="#23201A" stroke-width="1"/>
+<text x="0" y="20" font-size="10" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace">0</text>
+<text x="245.0" y="20" font-size="10" fill="#6B5F4A" text-anchor="end" font-family="ui-monospace, Menlo, monospace">5 km</text>
+<rect x="0" y="26" width="118.3" height="6" fill="#A63A22"/>
+<rect x="118.3" y="26" width="118.3" height="6" fill="#FBF8F1" stroke="#A63A22" stroke-width="1"/>
+<text x="236.6" y="46" font-size="10" fill="#6B5F4A" text-anchor="end" font-family="ui-monospace, Menlo, monospace">3 mi</text>
+</g>
+<g transform="translate(86 98)">
+<text font-size="21" fill="#23201A">Washakie Pass &#8594; Cirque of the Towers</text>
+<text y="20" font-size="12" fill="#6B5F4A" font-family="ui-monospace, Menlo, monospace" letter-spacing="1">36 MI LOOP &#183; 7,100 FT GAIN &#183; WIND RIVER RANGE, WY</text>
+</g>
+<text x="86" y="136" font-size="10" fill="#A8987A" font-family="ui-monospace, Menlo, monospace">SCHEMATIC &#183; APPROXIMATE ALIGNMENT &#183; NOT FOR NAVIGATION</text>
+</svg>

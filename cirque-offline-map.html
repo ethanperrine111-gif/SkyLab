@@ -681,14 +681,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
 body.prof #map{bottom:132px}
 .leaflet-container{background:#0A0F14;font-family:var(--sans)}
 
-#ui{position:absolute;top:0;left:0;bottom:0;width:336px;z-index:1000;
+#ui{position:absolute;top:0;left:0;bottom:0;width:336px;z-index:1002;
   background:var(--panel);border-right:1px solid var(--edge);
   display:flex;flex-direction:column;transition:transform .22s ease}
-#ui.collapsed{transform:translateX(-336px)}
-#toggle{position:absolute;top:12px;left:348px;z-index:1001;background:var(--panel);
-  color:var(--fg);border:1px solid var(--edge);width:34px;height:34px;border-radius:6px;
-  cursor:pointer;font-size:15px;transition:left .22s ease;display:grid;place-items:center}
-#ui.collapsed + #toggle{left:12px}
+#ui.collapsed{transform:translateX(-100%)}
+#scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:1001;display:none}
+#toggle{position:absolute;top:12px;left:348px;z-index:1003;background:var(--panel);
+  color:var(--fg);border:1px solid var(--edge);width:44px;height:44px;border-radius:8px;
+  cursor:pointer;font-size:18px;transition:left .22s ease;display:grid;place-items:center}
+#ui.collapsed ~ #toggle{left:12px}
+#closep{display:none;position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:8px;
+  background:var(--panel-2);border:1px solid var(--edge);color:var(--fg);font-size:17px;cursor:pointer;
+  place-items:center;z-index:3}
 
 .hd{padding:15px 18px 13px;border-bottom:1px solid var(--edge)}
 .hd h1{margin:0;font-size:15.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
@@ -783,10 +787,19 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
 .leaflet-bar a:hover{background:var(--panel-2)!important}
 .leaflet-control-scale-line{background:rgba(15,21,27,.85)!important;color:var(--dim)!important;
   border-color:var(--edge)!important;font-family:var(--mono);font-size:10px}
-@media (max-width:760px){
-  #ui{width:292px}#ui.collapsed{transform:translateX(-292px)}#toggle{left:304px}
-  body.prof #map{bottom:110px}#profile{height:110px;left:292px}#profile svg{height:110px}
-  body.nopanel #profile{left:0}
+/* Narrow screens: sheet over a full-bleed map instead of a fixed sidebar. */
+@media (max-width:899px){
+  #ui{width:min(340px,88vw);box-shadow:0 0 46px rgba(0,0,0,.65)}
+  #toggle{left:12px;top:12px}
+  #ui:not(.collapsed) ~ #scrim{display:block}
+  #closep{display:grid}
+  #profile{left:0;height:104px}#profile svg{height:104px}
+  body.prof #map{bottom:104px}
+  body.prof #readout{bottom:114px}
+  .sec{padding:14px 16px}
+  .btn{padding:12px 8px;font-size:12.5px}
+  .lyr{padding:12px 6px;font-size:12.5px}
+  .wp{padding:12px 8px}
 }
 </style>
 </head>
@@ -794,6 +807,7 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
 <div id="map"></div>
 
 <div id="ui">
+  <button id="closep" title="Close menu">&#10005;</button>
   <div class="hd">
     <h1>Washakie Pass Loop to Cirque of the Towers</h1>
     <div class="src">&#10003; Real GPX track &middot; 8,424 points</div>
@@ -846,7 +860,8 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
     <div id="wplist"></div>
   </div>
 </div>
-<button id="toggle" title="Toggle panel">&#9776;</button>
+<div id="scrim"></div>
+<button id="toggle" title="Menu">&#9776;</button>
 <div id="readout">&mdash;</div>
 <div id="profile"><svg id="psvg" preserveAspectRatio="none"></svg><div id="phud"></div></div>
 
@@ -923,7 +938,21 @@ function setLayer(k){
 const halo=L.polyline(TRACK,{color:'#0B0F14',weight:8,opacity:.6,lineJoin:'round'});
 const line=L.polyline(TRACK,{color:'#FF5A1F',weight:3.6,opacity:.98,lineJoin:'round'});
 const group=L.layerGroup([halo,line]).addTo(map);
-const FIT=()=>map.fitBounds(line.getBounds(),{paddingTopLeft:[356,26],paddingBottomRight:[26,26]});
+const narrow=()=>innerWidth<900;
+function panelOpen(){return !document.querySelector('#ui').classList.contains('collapsed')}
+function setPanel(open){
+  document.querySelector('#ui').classList.toggle('collapsed',!open);
+  document.body.classList.toggle('nopanel',!open);
+  setTimeout(()=>{map.invalidateSize();drawProfile()},260);
+}
+/* Close the sheet after anything that changes the map, or the control looks dead. */
+function afterMapAction(){ if(narrow()&&panelOpen()) setPanel(false); }
+function FIT(){
+  const wantLeft=(panelOpen()&&!narrow())?356:26;
+  const maxSide=Math.max(10,Math.floor(innerWidth/2)-24);
+  map.fitBounds(line.getBounds(),
+    {paddingTopLeft:[Math.min(wantLeft,maxSide),26],paddingBottomRight:[Math.min(26,maxSide),26]});
+}
 
 const markers=WPS.map((w,i)=>{
   const m=L.marker([w.lat,w.lon],{icon:L.divIcon({className:'',
@@ -1004,7 +1033,7 @@ function onProfileLeave(){
 /* ---------- UI ---------- */
 const $=s=>document.querySelector(s);
 $('#layers').innerHTML=Object.entries(LAYERS).map(([k,c])=>`<button class="lyr" data-k="${k}">${c.label}</button>`).join('');
-document.querySelectorAll('.lyr').forEach(b=>b.onclick=()=>setLayer(b.dataset.k));
+document.querySelectorAll('.lyr').forEach(b=>b.onclick=()=>{setLayer(b.dataset.k);afterMapAction()});
 
 $('#wplist').innerHTML=WPS.map((w,i)=>
   `<div class="wp" data-i="${i}"><div class="dot ${w.kind}"></div>
@@ -1016,10 +1045,11 @@ $('#toggle').onclick=()=>{
   $('#ui').classList.toggle('collapsed');
   document.body.classList.toggle('nopanel');
   setTimeout(()=>{map.invalidateSize();drawProfile()},260);};
-$('#fit').onclick=FIT;
+$('#fit').onclick=()=>{FIT();afterMapAction()};
 $('#toggleRoute').onclick=e=>{
   if(map.hasLayer(group)){map.removeLayer(group);e.target.textContent='Show track'}
-  else{group.addTo(map);e.target.textContent='Hide track'}};
+  else{group.addTo(map);e.target.textContent='Hide track'}
+  afterMapAction();};
 $('#toggleProf').onclick=e=>{
   document.body.classList.toggle('prof');
   e.target.textContent=document.body.classList.contains('prof')?'Hide profile':'Show profile';
@@ -1107,6 +1137,11 @@ $('#gpx').onclick=()=>{
 };
 
 /* ---------- boot ---------- */
+if(narrow()){                        // phone: lead with the map, not the menu
+  document.querySelector('#ui').classList.add('collapsed');
+  document.body.classList.add('nopanel');
+  document.body.classList.remove('prof');
+}
 drawProfile();
 const psvg=document.getElementById('psvg');
 psvg.addEventListener('mousemove',onProfileMove);
@@ -1114,6 +1149,8 @@ psvg.addEventListener('touchmove',onProfileMove,{passive:true});
 psvg.addEventListener('mouseleave',onProfileLeave);
 let rzT; addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(drawProfile,150)});
 psvg.addEventListener('touchend',onProfileLeave);
+if(narrow()) $('#toggleProf').textContent='Show profile';
+addEventListener('orientationchange',()=>setTimeout(()=>{map.invalidateSize();drawProfile()},300));
 
 openDB().then(async()=>{
   setLayer('topo'); FIT(); select(0,false);

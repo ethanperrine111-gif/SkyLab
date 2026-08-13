@@ -23,13 +23,17 @@ body.nogl #nowebgl{display:grid}
 #nowebgl div{max-width:440px;line-height:1.6;color:var(--dim)}
 #nowebgl b{color:var(--fg)}
 
-#ui{position:absolute;top:0;left:0;bottom:0;width:336px;z-index:1000;background:var(--panel);
+#ui{position:absolute;top:0;left:0;bottom:0;width:336px;z-index:1002;background:var(--panel);
   border-right:1px solid var(--edge);display:flex;flex-direction:column;transition:transform .22s ease}
-#ui.collapsed{transform:translateX(-336px)}
-#toggle{position:absolute;top:12px;left:348px;z-index:1001;background:var(--panel);color:var(--fg);
-  border:1px solid var(--edge);width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:15px;
+#ui.collapsed{transform:translateX(-100%)}
+#scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:1001;display:none}
+#toggle{position:absolute;top:12px;left:348px;z-index:1003;background:var(--panel);color:var(--fg);
+  border:1px solid var(--edge);width:44px;height:44px;border-radius:8px;cursor:pointer;font-size:18px;
   transition:left .22s ease;display:grid;place-items:center}
-#ui.collapsed + #toggle{left:12px}
+#ui.collapsed ~ #toggle{left:12px}
+#closep{display:none;position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:8px;
+  background:var(--panel-2);border:1px solid var(--edge);color:var(--fg);font-size:17px;cursor:pointer;
+  place-items:center;z-index:3}
 
 .hd{padding:15px 18px 13px;border-bottom:1px solid var(--edge)}
 .hd h1{margin:0;font-size:15.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
@@ -115,10 +119,21 @@ body.prof #profile{display:block}
 .maplibregl-ctrl-group button{background:var(--panel)!important}
 .maplibregl-ctrl-group button span{filter:invert(1) brightness(1.6)}
 .maplibregl-ctrl-scale{background:rgba(15,21,27,.85)!important;color:var(--dim)!important;border-color:var(--edge)!important;font-family:var(--mono);font-size:10px}
-@media (max-width:760px){
-  #ui{width:292px}#ui.collapsed{transform:translateX(-292px)}#toggle{left:304px}
-  body.prof #map{bottom:110px}#profile{height:110px;left:292px}#profile svg{height:110px}
-  body.nopanel #profile{left:0}
+/* Narrow screens: the panel becomes a dismissible sheet over a full-bleed map,
+   so the map is never squeezed into a strip behind it. */
+@media (max-width:899px){
+  #ui{width:min(340px,88vw);box-shadow:0 0 46px rgba(0,0,0,.65)}
+  #toggle{left:12px;top:12px}
+  #ui:not(.collapsed) ~ #scrim{display:block}
+  #closep{display:grid}
+  #profile{left:0;height:104px}#profile svg{height:104px}
+  body.prof #map{bottom:104px}
+  body.prof #readout{bottom:114px}
+  .sec{padding:14px 16px}
+  .btn{padding:12px 8px;font-size:12.5px}
+  .lyr{padding:12px 6px;font-size:12.5px}
+  .ovl{padding:10px 2px;font-size:13px}
+  .wp{padding:12px 8px}
 }
 </style>
 </head>
@@ -130,6 +145,7 @@ Use <b>cirque-offline-map.html</b> — the flat 2D version with the same
 track, waypoints and offline tiles.</div></div>
 
 <div id="ui">
+  <button id="closep" title="Close menu">&#10005;</button>
   <div class="hd">
     <h1>Washakie Pass Loop to Cirque of the Towers</h1>
     <div class="src">&#10003; Real GPX &middot; 3D terrain</div>
@@ -185,7 +201,8 @@ track, waypoints and offline tiles.</div></div>
 
   <div class="wps"><h2>Waypoints</h2><div id="wplist"></div></div>
 </div>
-<button id="toggle" title="Toggle panel">&#9776;</button>
+<div id="scrim"></div>
+<button id="toggle" title="Menu">&#9776;</button>
 <div id="readout">&mdash;</div>
 <div id="profile"><svg id="psvg" preserveAspectRatio="none"></svg><div id="phud"></div></div>
 
@@ -344,8 +361,26 @@ const BOUNDS=(()=>{let a=90,b=-90,c=180,d=-180;
   TRACK.forEach(p=>{a=Math.min(a,p[0]);b=Math.max(b,p[0]);c=Math.min(c,p[1]);d=Math.max(d,p[1])});
   return [[c,a],[d,b]];})();
 
+const narrow=()=>innerWidth<900;
+function panelOpen(){return !$('#ui').classList.contains('collapsed')}
+function setPanel(open){
+  $('#ui').classList.toggle('collapsed',!open);
+  document.body.classList.toggle('nopanel',!open);
+  setTimeout(()=>{map&&map.resize();drawProfile()},260);
+}
+/* On a phone the sheet covers the map, so close it after anything that changes
+   what the map shows — otherwise the control looks like it did nothing. */
+function afterMapAction(){ if(narrow()&&panelOpen()) setPanel(false); }
+
 function fit(pitch){
-  map.fitBounds(BOUNDS,{padding:{top:40,bottom:40,left:$('#ui').classList.contains('collapsed')?40:360,right:40},
+  if(!map) return;
+  /* Padding must never exceed the viewport or fitBounds silently misbehaves. */
+  const wantLeft = (panelOpen()&&!narrow()) ? 360 : 30;
+  const maxSide  = Math.max(10, Math.floor(innerWidth/2)-24);
+  const maxTB    = Math.max(10, Math.floor(map.getContainer().clientHeight/2)-24);
+  map.fitBounds(BOUNDS,{padding:{
+      top:Math.min(40,maxTB), bottom:Math.min(40,maxTB),
+      left:Math.min(wantLeft,maxSide), right:Math.min(30,maxSide)},
     pitch:pitch===undefined?map.getPitch():pitch,duration:900});
 }
 
@@ -525,30 +560,32 @@ $('#wplist').innerHTML=WPS.map((w,i)=>
    <div class="el">${w.ft.toLocaleString()}'</div></div>`).join('');
 
 function wire(){
-  document.querySelectorAll('.lyr').forEach(b=>b.onclick=()=>setBase(b.dataset.k));
-  document.querySelectorAll('.wp').forEach(e=>e.onclick=()=>goTo(+e.dataset.i));
-  $('#ov-hiking').onchange=e=>setOverlay('hiking',e.target.checked);
-  $('#ov-track').onchange=e=>{setOverlay('trk',e.target.checked);setOverlay('trk-case',e.target.checked)};
-  $('#toggle').onclick=()=>{
-    $('#ui').classList.toggle('collapsed');document.body.classList.toggle('nopanel');
-    setTimeout(()=>{map&&map.resize();drawProfile()},260);};
+  document.querySelectorAll('.lyr').forEach(b=>b.onclick=()=>{setBase(b.dataset.k);afterMapAction()});
+  document.querySelectorAll('.wp').forEach(e=>e.onclick=()=>{goTo(+e.dataset.i);afterMapAction()});
+  $('#ov-hiking').onchange=e=>{setOverlay('hiking',e.target.checked);afterMapAction()};
+  $('#ov-track').onchange=e=>{setOverlay('trk',e.target.checked);setOverlay('trk-case',e.target.checked);afterMapAction()};
+  $('#toggle').onclick=()=>setPanel(!panelOpen());
+  $('#closep').onclick=()=>setPanel(false);
+  $('#scrim').onclick=()=>setPanel(false);
   $('#toggleProf').onclick=e=>{
     document.body.classList.toggle('prof');
     e.target.textContent=document.body.classList.contains('prof')?'Hide profile':'Show profile';
     setTimeout(()=>{map&&map.resize();drawProfile()},60);};
-  $('#fit').onclick=()=>fit();
+  $('#fit').onclick=()=>{fit();afterMapAction()};
   $('#flat').onclick=e=>{
+    if(!map)return;
     const p=map.getPitch()>5?0:60;
     map.easeTo({pitch:p,bearing:p?map.getBearing():0,duration:700});
-    e.target.textContent=p?'Top-down':'3D view';};
+    e.target.textContent=p?'Top-down':'3D view'; afterMapAction();};
   $('#terr').onclick=e=>{
+    if(!map)return;
     terrainOn=!terrainOn;
     try{map.setTerrain(terrainOn?{source:'terrain',exaggeration:exag}:null)}catch(err){}
     setOverlay('hillshade',terrainOn);
-    e.target.textContent=terrainOn?'Terrain on':'Terrain off';};
+    e.target.textContent=terrainOn?'Terrain on':'Terrain off'; afterMapAction();};
   $('#exag').oninput=e=>{
     exag=+e.target.value; $('#exagv').textContent=exag.toFixed(1)+'×';
-    if(terrainOn){try{map.setTerrain({source:'terrain',exaggeration:exag})}catch(err){}}};
+    if(terrainOn&&map){try{map.setTerrain({source:'terrain',exaggeration:exag})}catch(err){}}};
   const svg=$('#psvg');
   svg.addEventListener('mousemove',profMove);
   svg.addEventListener('touchmove',profMove,{passive:true});
@@ -557,7 +594,14 @@ function wire(){
   let t;addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(drawProfile,150)});
 }
 
+if(narrow()){                       // phone: start with the map, not the menu
+  $('#ui').classList.add('collapsed');
+  document.body.classList.add('nopanel');
+  document.body.classList.remove('prof');
+}
 drawProfile(); wire();
+if(narrow()) $('#toggleProf').textContent='Show profile';
+addEventListener('orientationchange',()=>setTimeout(()=>{map&&map.resize();drawProfile()},300));
 if(!hasWebGL()){
   document.body.classList.add('nogl');
   setStat('WebGL unavailable — 3D terrain cannot run here.',1);

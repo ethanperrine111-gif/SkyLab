@@ -1,0 +1,1163 @@
+<title>Cirque of the Towers Loop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --paper:      #F1EBDC;
+    --paper-2:    #E8DFC9;
+    --paper-3:    #DDD1B4;
+    --ink:        #23201A;
+    --ink-soft:   #6B5F4A;
+    --ink-faint:  #A8987A;
+    --rule:       #C9BC9C;
+    --contour:    #BFA97C;
+    --contour-2:  #D6C39A;
+    --trail:      #A63A22;
+    --trail-soft: #C46B4E;
+    --water:      #4A7690;
+    --water-deep: #2F5468;
+    --water-edge: #325A72;
+    --stone:      #8B8478;
+    --tundra:     #C7C097;
+    --forest:     #8FA07A;
+    --accent:     #D97B3B;
+    --snow:       #F5F0E0;
+
+    --card:       #EFE7D0;
+    --shadow:     0 1px 0 rgba(35, 32, 26, .06), 0 12px 30px -18px rgba(35, 32, 26, .35);
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body:    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-mono:    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #141B22;
+      --paper-2:    #1B242D;
+      --paper-3:    #232F3A;
+      --ink:        #ECE3CC;
+      --ink-soft:   #A99A7D;
+      --ink-faint:  #6E6350;
+      --rule:       #2F3D4A;
+      --contour:    #3C4C5B;
+      --contour-2:  #2E3B48;
+      --trail:      #E8875F;
+      --trail-soft: #B25E42;
+      --water:      #5A8FAD;
+      --water-deep: #3D6C89;
+      --water-edge: #6EA3C0;
+      --stone:      #4E5A66;
+      --tundra:     #3E4A46;
+      --forest:     #37483E;
+      --accent:     #F0A55E;
+      --snow:       #26313B;
+      --card:       #1C262F;
+      --shadow:     0 1px 0 rgba(0,0,0,.4), 0 18px 40px -20px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #141B22;
+    --paper-2:    #1B242D;
+    --paper-3:    #232F3A;
+    --ink:        #ECE3CC;
+    --ink-soft:   #A99A7D;
+    --ink-faint:  #6E6350;
+    --rule:       #2F3D4A;
+    --contour:    #3C4C5B;
+    --contour-2:  #2E3B48;
+    --trail:      #E8875F;
+    --trail-soft: #B25E42;
+    --water:      #5A8FAD;
+    --water-deep: #3D6C89;
+    --water-edge: #6EA3C0;
+    --stone:      #4E5A66;
+    --tundra:     #3E4A46;
+    --forest:     #37483E;
+    --accent:     #F0A55E;
+    --snow:       #26313B;
+    --card:       #1C262F;
+    --shadow:     0 1px 0 rgba(0,0,0,.4), 0 18px 40px -20px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* faint paper grain, entirely inline */
+    background-image:
+      radial-gradient(rgba(120, 100, 60, .05) 1px, transparent 1px),
+      radial-gradient(rgba(120, 100, 60, .04) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+  }
+  :root[data-theme="dark"] body,
+  :root:not([data-theme="light"]) body {
+    background-image:
+      radial-gradient(rgba(255, 240, 210, .025) 1px, transparent 1px),
+      radial-gradient(rgba(255, 240, 210, .02) 1px, transparent 1px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) body {
+      background-image:
+        radial-gradient(rgba(255, 240, 210, .025) 1px, transparent 1px),
+        radial-gradient(rgba(255, 240, 210, .02) 1px, transparent 1px);
+    }
+  }
+
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 32px 28px 96px;
+  }
+
+  /* ————— Masthead ————— */
+  .mast {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 22px;
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-size: clamp(30px, 5vw, 54px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+    font-variant: small-caps;
+    letter-spacing: .02em;
+  }
+  h1 .amp { color: var(--trail); font-style: italic; font-variant: normal; }
+  .sub {
+    font-family: var(--f-display);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin: 10px 0 0;
+    max-width: 62ch;
+  }
+  .theme-toggle {
+    justify-self: end;
+    align-self: start;
+    background: var(--paper-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    padding: 6px 12px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .theme-toggle:hover { background: var(--paper-3); }
+
+  /* ————— Stats strip ————— */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0;
+    margin-bottom: 30px;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+  }
+  .stat {
+    padding: 14px 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .k {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .stat .v {
+    font-family: var(--f-display);
+    font-size: 24px;
+    line-height: 1.1;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .u {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-left: 2px;
+  }
+
+  /* ————— Map + panel ————— */
+  .map-row {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 900px) {
+    .map-row { grid-template-columns: 1fr; }
+  }
+  .map-frame {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 8px;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .map-frame svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--paper);
+  }
+  .map-caption {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 10px 12px 8px;
+    max-width: 210px;
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .map-caption strong {
+    display: block;
+    color: var(--ink);
+    font-size: 12px;
+    letter-spacing: .18em;
+    margin-bottom: 4px;
+  }
+
+  /* Waypoint pin styles are inside the SVG; hover/focus rings on <g class="wp"> */
+  .wp { cursor: pointer; }
+  .wp:focus { outline: none; }
+  .wp .halo { fill: var(--accent); opacity: 0; transition: opacity .18s; }
+  .wp:hover .halo, .wp:focus-visible .halo, .wp.is-active .halo { opacity: .28; }
+  .wp .pin {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 1.6;
+  }
+  .wp.is-active .pin { fill: var(--accent); stroke: var(--ink); }
+  .wp .pin-num {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .wp.is-active .pin-num { fill: var(--ink); }
+
+  /* labels drawn in SVG */
+  .lbl {
+    font-family: var(--f-display);
+    font-style: italic;
+    fill: var(--ink);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .lbl.peak {
+    font-style: normal;
+    font-variant: small-caps;
+    letter-spacing: .1em;
+    fill: var(--ink-soft);
+    font-size: 10.5px;
+  }
+  .lbl.lake { fill: var(--water-edge); }
+  .lbl.pass {
+    font-variant: small-caps;
+    font-style: normal;
+    letter-spacing: .12em;
+    fill: var(--trail);
+    font-size: 10.5px;
+  }
+  .lbl.divide {
+    font-family: var(--f-mono);
+    font-size: 9px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    fill: var(--ink-faint);
+  }
+
+  /* ————— Panel ————— */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    padding: 22px 22px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .panel .kicker {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .panel h2 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.1;
+    margin: 6px 0 4px;
+    text-wrap: balance;
+    font-variant: small-caps;
+    letter-spacing: .02em;
+  }
+  .panel .coords {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: .06em;
+    margin-bottom: 14px;
+  }
+  .panel .meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 0;
+    margin-bottom: 14px;
+  }
+  .panel .meta div .k {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .panel .meta div .v {
+    font-family: var(--f-display);
+    font-size: 18px;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .panel .note {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0;
+  }
+  .panel .tags {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    border-radius: 2px;
+  }
+  .panel .nav {
+    margin-top: auto;
+    padding-top: 16px;
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .navbtn {
+    flex: 1;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 8px 6px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .navbtn:hover { background: var(--paper-3); }
+  .navbtn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ————— Elevation profile ————— */
+  .profile {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 22px 26px 12px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow);
+  }
+  .profile .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .profile h3 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: .04em;
+    margin: 0;
+    font-size: 20px;
+  }
+  .profile .legend {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex;
+    gap: 18px;
+  }
+  .profile svg { display: block; width: 100%; height: auto; }
+
+  /* ————— Info grid ————— */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: .04em;
+    font-size: 18px;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .card p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.6; }
+  .card p:last-child { margin-bottom: 0; }
+  .card ul { margin: 0; padding-left: 18px; font-size: 14.5px; line-height: 1.7; }
+  .card ul li::marker { color: var(--trail); }
+
+  /* Itinerary */
+  .itin {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    margin-bottom: 32px;
+    box-shadow: var(--shadow);
+  }
+  .itin h3 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-variant: small-caps;
+    letter-spacing: .04em;
+    font-size: 20px;
+    margin: 0;
+    padding: 18px 26px 6px;
+  }
+  .itin .row {
+    display: grid;
+    grid-template-columns: 90px 1.6fr 1fr 1fr;
+    gap: 20px;
+    padding: 14px 26px;
+    border-top: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  .itin .row .day {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--trail);
+  }
+  .itin .row .day em { font-style: normal; display: block; font-size: 22px; letter-spacing: 0; color: var(--ink); font-family: var(--f-display); }
+  .itin .row .leg { font-size: 15px; }
+  .itin .row .leg strong { font-family: var(--f-display); font-variant: small-caps; letter-spacing: .04em; font-weight: 500; }
+  .itin .row .mi, .itin .row .camp {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: .04em;
+  }
+  .itin .row .mi b, .itin .row .camp b {
+    color: var(--ink); font-weight: 500; font-family: var(--f-display); font-size: 15px;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  footer .diamond { color: var(--trail); margin: 0 8px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Wind River Range · Bridger–Teton National Forest · Wyoming</p>
+      <h1>Cirque of the Towers <span class="amp">via</span> Washakie Pass</h1>
+      <p class="sub">A four-day counterclockwise loop from Big Sandy Trailhead — over two 11,000-foot passes and the granite gallery of the Cirque.</p>
+    </div>
+    <button class="theme-toggle" id="themeBtn" type="button">Toggle Theme</button>
+  </header>
+
+  <section class="stats" aria-label="Trip statistics">
+    <div class="stat"><div class="k">Distance</div><div class="v">36.0<span class="u"> mi</span></div></div>
+    <div class="stat"><div class="k">Elevation Gain</div><div class="v">7,100<span class="u"> ft</span></div></div>
+    <div class="stat"><div class="k">High Point</div><div class="v">11,864<span class="u"> ft</span></div></div>
+    <div class="stat"><div class="k">Loop Type</div><div class="v">Loop</div></div>
+    <div class="stat"><div class="k">Suggested</div><div class="v">4<span class="u"> days</span></div></div>
+    <div class="stat"><div class="k">Season</div><div class="v">Jul–Sep</div></div>
+  </section>
+
+  <section class="map-row">
+    <div class="map-frame">
+      <div class="map-caption">
+        <strong>Loop, counterclockwise</strong>
+        Sketched from USGS quads. Not for navigation — carry a topo and compass.
+      </div>
+
+      <svg viewBox="0 0 1000 720" role="img" aria-labelledby="mapTitle" xmlns="http://www.w3.org/2000/svg">
+        <title id="mapTitle">Illustrated topographic map of the Cirque of the Towers loop</title>
+
+        <defs>
+          <pattern id="hachure" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--contour)" stroke-width="0.6" opacity="0.55"/>
+          </pattern>
+          <pattern id="tundraP" width="10" height="10" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="0.7" fill="var(--tundra)" opacity="0.55"/>
+            <circle cx="7" cy="6" r="0.6" fill="var(--tundra)" opacity="0.45"/>
+          </pattern>
+          <pattern id="forestP" width="14" height="14" patternUnits="userSpaceOnUse">
+            <path d="M3 12 L5 6 L7 12 Z M8 12 L10 5 L12 12 Z" fill="var(--forest)" opacity="0.55"/>
+          </pattern>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="var(--trail)"/>
+          </marker>
+        </defs>
+
+        <!-- Neatline -->
+        <rect x="4" y="4" width="992" height="712" fill="none" stroke="var(--ink-faint)" stroke-width="1"/>
+        <rect x="12" y="12" width="976" height="696" fill="none" stroke="var(--ink-faint)" stroke-width="0.4"/>
+
+        <!-- Terrain wash — broad regions -->
+        <path d="M 60 620 Q 200 500 350 520 Q 500 540 640 500 Q 780 460 920 520 L 920 700 L 60 700 Z"
+              fill="url(#forestP)" opacity=".85"/>
+        <path d="M 120 460 Q 300 380 460 400 Q 620 420 780 380 Q 880 360 940 400 L 940 540 Q 780 500 620 540 Q 460 560 300 520 Q 200 500 120 500 Z"
+              fill="url(#tundraP)" opacity=".9"/>
+
+        <!-- High country massifs (hachured shading) -->
+        <!-- Washakie/Continental Divide ridge -->
+        <path d="M 340 240 Q 420 130 520 160 Q 620 190 700 150 Q 780 130 820 180 L 820 260 Q 720 300 620 260 Q 520 240 420 280 L 340 280 Z"
+              fill="url(#hachure)" opacity=".65" stroke="var(--contour)" stroke-width="0.6"/>
+        <!-- Lizard Head Plateau -->
+        <path d="M 690 320 Q 760 300 820 360 Q 850 420 800 470 Q 740 490 700 460 Q 660 420 680 360 Z"
+              fill="url(#hachure)" opacity=".7" stroke="var(--contour)" stroke-width="0.6"/>
+        <!-- Cirque wall -->
+        <path d="M 560 480 Q 610 440 680 470 Q 730 500 720 550 Q 660 570 600 550 Q 560 530 560 480 Z"
+              fill="url(#hachure)" opacity=".7" stroke="var(--contour)" stroke-width="0.6"/>
+
+        <!-- Contour lines (elevation rings) — decorative topo feel -->
+        <g fill="none" stroke="var(--contour)" stroke-width="0.6" opacity=".55">
+          <path d="M 500 175 m -70 0 a 70 40 0 1 0 140 0 a 70 40 0 1 0 -140 0"/>
+          <path d="M 500 175 m -95 0 a 95 55 0 1 0 190 0 a 95 55 0 1 0 -190 0"/>
+          <path d="M 500 175 m -125 0 a 125 72 0 1 0 250 0 a 125 72 0 1 0 -250 0"/>
+          <path d="M 760 400 m -55 0 a 55 45 0 1 0 110 0 a 55 45 0 1 0 -110 0"/>
+          <path d="M 760 400 m -80 0 a 80 65 0 1 0 160 0 a 80 65 0 1 0 -160 0"/>
+          <path d="M 640 510 m -50 0 a 50 30 0 1 0 100 0 a 50 30 0 1 0 -100 0"/>
+          <path d="M 640 510 m -80 0 a 80 48 0 1 0 160 0 a 80 48 0 1 0 -160 0"/>
+        </g>
+
+        <!-- Continental Divide (long-dash line) -->
+        <path d="M 340 250 Q 460 190 560 200 Q 660 210 720 260 Q 770 320 790 400 Q 800 470 760 520"
+              fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="8 4 2 4" opacity=".85"/>
+        <text class="lbl divide" transform="translate(388 232) rotate(-18)">CONTINENTAL  DIVIDE</text>
+
+        <!-- Rivers/creeks -->
+        <path d="M 500 615 Q 505 560 540 510 Q 570 470 560 430 Q 550 400 520 380 Q 490 355 470 320"
+              fill="none" stroke="var(--water)" stroke-width="1.4" opacity=".7"/>
+        <path d="M 470 320 Q 445 300 420 260" fill="none" stroke="var(--water)" stroke-width="1.2" opacity=".55"/>
+        <path d="M 700 260 Q 720 320 740 360" fill="none" stroke="var(--water)" stroke-width="1.1" opacity=".55"/>
+
+        <!-- Lakes -->
+        <!-- Big Sandy Lake -->
+        <path d="M 545 465 Q 585 445 600 470 Q 610 495 585 510 Q 555 515 540 495 Z"
+              fill="var(--water)" stroke="var(--water-edge)" stroke-width="1"/>
+        <text class="lbl lake" x="606" y="500">Big Sandy Lake</text>
+
+        <!-- Meeks Lake / Dads Lake / Marms Lake cluster -->
+        <path d="M 400 380 q 12 -4 20 4 q 4 12 -8 16 q -16 2 -18 -8 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="360" y="378">Meeks L.</text>
+        <path d="M 360 340 q 16 -6 24 6 q 4 14 -10 18 q -20 2 -22 -12 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="300" y="342">Dads L.</text>
+        <path d="M 330 300 q 14 -4 22 6 q 2 12 -12 14 q -14 0 -16 -10 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="272" y="302">Marms L.</text>
+
+        <!-- Washakie Lake -->
+        <path d="M 400 225 q 22 -8 34 8 q 4 20 -18 22 q -22 -2 -22 -20 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="1"/>
+        <text class="lbl lake" x="345" y="248">Washakie L.</text>
+
+        <!-- Grave Lake area / Valentine -->
+        <path d="M 686 275 q 16 -4 24 6 q 2 12 -12 14 q -16 0 -16 -12 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="712" y="284">Valentine L.</text>
+
+        <!-- Bear Lake -->
+        <path d="M 720 458 q 16 -6 22 6 q 2 10 -12 12 q -14 0 -14 -10 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="746" y="466">Bear L.</text>
+
+        <!-- Lonesome Lake (Cirque) -->
+        <path d="M 615 505 q 26 -8 40 6 q 8 16 -12 22 q -30 4 -34 -12 Z"
+              fill="var(--water)" stroke="var(--water-edge)" stroke-width="1"/>
+        <text class="lbl lake" x="620" y="546">Lonesome Lake</text>
+
+        <!-- Arrowhead Lake -->
+        <path d="M 580 540 q 12 -4 18 4 q 2 10 -10 12 q -12 -2 -12 -10 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.8"/>
+        <text class="lbl lake" x="530" y="546">Arrowhead L.</text>
+
+        <!-- North Lake -->
+        <path d="M 560 490 q 10 -4 14 4 q 2 8 -8 10 q -10 -2 -10 -8 Z" fill="var(--water)" stroke="var(--water-edge)" stroke-width="0.7"/>
+        <text class="lbl lake" x="516" y="488">North L.</text>
+
+        <!-- Peaks -->
+        <g>
+          <!-- helper: peak triangle -->
+          <!-- Mt. Bonneville -->
+          <path d="M 460 168 l 9 -20 l 9 20 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="482" y="162">Mt. Bonneville 12,585</text>
+          <!-- Raid Peak -->
+          <path d="M 540 158 l 8 -18 l 8 18 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="562" y="152">Raid Pk. 12,532</text>
+          <!-- Mt. Geikie -->
+          <path d="M 620 168 l 8 -18 l 8 18 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="642" y="162">Mt. Geikie 12,378</text>
+          <!-- Ambush Peak -->
+          <path d="M 692 170 l 7 -16 l 7 16 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="712" y="164">Ambush Pk. 12,187</text>
+          <!-- Lizard Head Peak -->
+          <path d="M 776 356 l 8 -20 l 8 20 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.9"/>
+          <text class="lbl peak" x="794" y="352">Lizard Head 12,842</text>
+          <!-- Pingora (Cirque) -->
+          <path d="M 632 480 l 8 -20 l 8 20 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.9"/>
+          <text class="lbl peak" x="650" y="474">Pingora 11,884</text>
+          <!-- Wolf's Head -->
+          <path d="M 668 462 l 7 -18 l 7 18 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="686" y="456">Wolf's Head 12,163</text>
+          <!-- Warbonnet -->
+          <path d="M 596 464 l 7 -18 l 7 18 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text class="lbl peak" x="536" y="458">Warbonnet 12,362</text>
+          <!-- Warrior Peaks -->
+          <path d="M 556 500 l 6 -14 l 6 14 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.7"/>
+          <text class="lbl peak" x="484" y="498">Warrior Pks.</text>
+        </g>
+
+        <!-- Trail (dashed rust line) — counterclockwise loop -->
+        <path id="trail"
+              d="M 500 620
+                 Q 495 570 470 540
+                 Q 445 510 440 470
+                 Q 435 430 420 400
+                 L 410 380
+                 Q 400 355 385 340
+                 Q 370 320 375 290
+                 Q 385 260 400 240
+                 L 410 235
+                 Q 445 210 475 185
+                 L 500 175
+                 Q 545 175 580 185
+                 Q 620 200 660 220
+                 Q 690 240 700 265
+                 Q 715 300 725 340
+                 Q 745 375 758 410
+                 Q 770 445 750 470
+                 Q 720 490 685 500
+                 Q 655 510 640 525
+                 Q 625 540 615 555
+                 L 605 560
+                 Q 585 555 570 545
+                 L 560 520
+                 Q 555 505 555 490
+                 Q 555 480 555 475
+                 L 555 470
+                 Q 550 475 545 480
+                 Q 540 490 530 500
+                 Q 520 520 510 550
+                 Q 500 585 500 620 Z"
+              fill="none"
+              stroke="var(--trail)"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-dasharray="6 4"
+              opacity=".95"/>
+
+        <!-- Direction arrows along trail -->
+        <g fill="var(--trail)">
+          <path d="M 445 505 l 6 -3 l -6 -3 z" transform="rotate(-70 448 505)"/>
+          <path d="M 402 320 l 6 -3 l -6 -3 z" transform="rotate(-95 405 320)"/>
+          <path d="M 470 195 l 6 -3 l -6 -3 z" transform="rotate(-35 473 195)"/>
+          <path d="M 620 210 l 6 -3 l -6 -3 z" transform="rotate(20 623 210)"/>
+          <path d="M 745 400 l 6 -3 l -6 -3 z" transform="rotate(95 748 400)"/>
+          <path d="M 690 500 l 6 -3 l -6 -3 z" transform="rotate(150 693 500)"/>
+          <path d="M 590 555 l 6 -3 l -6 -3 z" transform="rotate(200 593 555)"/>
+          <path d="M 505 590 l 6 -3 l -6 -3 z" transform="rotate(260 508 590)"/>
+        </g>
+
+        <!-- Pass labels -->
+        <text class="lbl pass" x="440" y="196">Washakie Pass</text>
+        <text class="lbl pass" x="576" y="565">Jackass Pass</text>
+
+        <!-- Waypoints (clickable) -->
+        <g id="waypoints">
+          <!-- Positions correspond to WAYPOINTS[i].x / .y -->
+        </g>
+
+        <!-- Compass rose -->
+        <g transform="translate(920 630)">
+          <circle r="30" fill="var(--paper)" stroke="var(--ink)" stroke-width="0.8"/>
+          <circle r="22" fill="none" stroke="var(--ink-faint)" stroke-width="0.5"/>
+          <path d="M 0 -26 L 4 0 L 0 26 L -4 0 Z" fill="var(--ink)"/>
+          <path d="M -26 0 L 0 4 L 26 0 L 0 -4 Z" fill="var(--ink-faint)"/>
+          <text x="0" y="-32" text-anchor="middle" font-family="var(--f-display)" font-size="12" fill="var(--ink)" font-variant="small-caps" letter-spacing=".1em">N</text>
+        </g>
+
+        <!-- Scale bar -->
+        <g transform="translate(52 660)">
+          <rect x="0" y="0" width="60" height="6" fill="var(--ink)"/>
+          <rect x="60" y="0" width="60" height="6" fill="var(--paper)" stroke="var(--ink)" stroke-width="0.8"/>
+          <text x="0" y="22" font-family="var(--f-mono)" font-size="9" letter-spacing=".14em" fill="var(--ink-soft)">0</text>
+          <text x="55" y="22" font-family="var(--f-mono)" font-size="9" letter-spacing=".14em" fill="var(--ink-soft)">2</text>
+          <text x="112" y="22" font-family="var(--f-mono)" font-size="9" letter-spacing=".14em" fill="var(--ink-soft)">4 MI</text>
+        </g>
+
+        <!-- Legend -->
+        <g transform="translate(52 590)" font-family="var(--f-mono)" font-size="9" letter-spacing=".12em" fill="var(--ink-soft)">
+          <text y="0" font-size="10" fill="var(--ink)" letter-spacing=".2em">LEGEND</text>
+          <g transform="translate(0 14)"><line x1="0" y1="6" x2="30" y2="6" stroke="var(--trail)" stroke-width="2" stroke-dasharray="4 3"/><text x="38" y="9">TRAIL</text></g>
+          <g transform="translate(0 30)"><line x1="0" y1="6" x2="30" y2="6" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="6 3 2 3"/><text x="38" y="9">DIVIDE</text></g>
+          <g transform="translate(0 46)"><path d="M 10 12 l 6 -12 l 6 12 Z" fill="var(--stone)" stroke="var(--ink)" stroke-width="0.6"/><text x="38" y="9">PEAK</text></g>
+        </g>
+
+      </svg>
+    </div>
+
+    <aside class="panel" id="panel" aria-live="polite">
+      <div class="kicker">
+        <span id="p-order">Waypoint 1 · 10</span>
+        <span id="p-mile">Mile 0.0</span>
+      </div>
+      <h2 id="p-title">Big Sandy Trailhead</h2>
+      <div class="coords" id="p-coords">42.6870° N, 109.2698° W</div>
+
+      <div class="meta">
+        <div><div class="k">Elevation</div><div class="v" id="p-elev">9,085′</div></div>
+        <div><div class="k">Gain to</div><div class="v" id="p-gain">—</div></div>
+        <div><div class="k">Water</div><div class="v" id="p-water">Yes</div></div>
+      </div>
+
+      <p class="note" id="p-note">Register at the kiosk and start north on the Big Sandy Trail. Gravel road access from Boulder or Farson; the last 15 miles are washboard. Pit toilets, no potable water at the lot.</p>
+
+      <div class="tags" id="p-tags"></div>
+
+      <div class="nav">
+        <button class="navbtn" id="prevBtn" type="button">◂ Prev</button>
+        <button class="navbtn" id="nextBtn" type="button">Next ▸</button>
+      </div>
+    </aside>
+  </section>
+
+  <section class="profile">
+    <div class="head">
+      <h3>Elevation Profile</h3>
+      <div class="legend">
+        <span>ft above sea level · mile 0 → 36</span>
+      </div>
+    </div>
+    <svg viewBox="0 0 1000 260" id="profile" role="img" aria-label="Elevation profile with waypoints"></svg>
+  </section>
+
+  <section class="itin">
+    <h3>Suggested Four-Day Itinerary</h3>
+    <div class="row">
+      <div class="day">Day <em>01</em></div>
+      <div class="leg"><strong>Big Sandy TH → Marms Lake area</strong><br>Warm-up on the Fremont Trail, easy grade through lodgepole and meadow. Set a slow pace — you're acclimating.</div>
+      <div class="mi">Miles <b>7.5</b></div>
+      <div class="camp">Camp <b>Dads / Marms Lake</b></div>
+    </div>
+    <div class="row">
+      <div class="day">Day <em>02</em></div>
+      <div class="leg"><strong>Marms → over Washakie Pass → Bear Ears Jct.</strong><br>The big push. Climb 1,700 ft to the pass, then a long descent past Washakie Lake. Filter often — creek crossings are frequent above the pass.</div>
+      <div class="mi">Miles <b>11.5</b></div>
+      <div class="camp">Camp <b>Grave Lake / Valentine Meadow</b></div>
+    </div>
+    <div class="row">
+      <div class="day">Day <em>03</em></div>
+      <div class="leg"><strong>Bear Ears Jct. → Lizard Head Plateau → Lonesome Lake</strong><br>The crown of the trip: three miles above 11,000 ft on the Lizard Head Meadows plateau, then a knee-punishing drop into the Cirque. Camp 200+ ft above Lonesome Lake per Forest Service rule.</div>
+      <div class="mi">Miles <b>9.0</b></div>
+      <div class="camp">Camp <b>Lonesome Lake basin</b></div>
+    </div>
+    <div class="row">
+      <div class="day">Day <em>04</em></div>
+      <div class="leg"><strong>Lonesome Lake → Jackass Pass → Big Sandy TH</strong><br>Short but rugged: bouldery climb to Jackass Pass with a full-frontal view of the Cirque, then down past North Lake and Arrowhead to close the loop.</div>
+      <div class="mi">Miles <b>8.0</b></div>
+      <div class="camp">Camp <b>—</b></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h3>Permits &amp; Rules</h3>
+      <p>No permit required for overnight travel in Bridger Wilderness; free self-registration at the trailhead.</p>
+      <p>Group size max <b>10 people</b>. Camp <b>200 ft</b> from lakes, streams, and trails. Bear canisters strongly recommended; grizzlies documented in the range. No campfires above 9,200 ft.</p>
+    </div>
+    <div class="card">
+      <h3>Getting There</h3>
+      <p>Big Sandy Trailhead is 45 mi east of Boulder, WY. From Pinedale, take US-191 south, then 20+ mi of dirt roads (Lander Cutoff / Big Sandy Opening). High-clearance recommended after rain. No cell service past Boulder.</p>
+      <p style="font-family: var(--f-mono); font-size: 12px; color: var(--ink-soft);">GPS 42.6870° N · 109.2698° W · 9,085 ft</p>
+    </div>
+    <div class="card">
+      <h3>Weather &amp; Season</h3>
+      <p>Snow lingers on Washakie Pass and Lizard Head Plateau into mid-July. Prime window is <b>late July through mid-September</b>. Afternoon thunderstorms are near-daily — be off the passes by noon.</p>
+      <p>Nights routinely drop into the 20s °F. Mosquitoes brutal through late July.</p>
+    </div>
+    <div class="card">
+      <h3>Water &amp; Filtering</h3>
+      <p>Reliable water at every named lake and most creeks. The driest stretch is <b>the Lizard Head Plateau</b> — top off at Bear Ears Jct. and again before climbing.</p>
+      <p>Treat everything; giardia and livestock (sheep bands in some drainages) are both present.</p>
+    </div>
+    <div class="card">
+      <h3>Bailouts</h3>
+      <p>Two shortcuts if the weather turns:</p>
+      <ul>
+        <li>Skip Washakie Pass — reverse to Big Sandy Lake and go direct over Jackass Pass (18 mi round trip).</li>
+        <li>From Lonesome Lake, exit via Jackass Pass any time; it's the shortest way back to the trailhead.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Bring</h3>
+      <ul>
+        <li>Topo: Beartooth Publishing <em>Southern Wind River Range</em> or USGS Big Sandy Opening / Lizard Head Peak quads.</li>
+        <li>Bear canister · trekking poles · microspikes if pre-August.</li>
+        <li>Filter <em>and</em> chemical backup · 20 °F bag · sturdy rain shell.</li>
+        <li>Downloaded GPX (bring your own — this map is a reference, not a nav tool).</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <div>Illustrated reference map <span class="diamond">◆</span> not for wilderness navigation</div>
+    <div>Save this page for offline use <span class="diamond">◆</span> works without a connection</div>
+  </footer>
+</div>
+
+<script>
+  // ————— Data —————
+  const WAYPOINTS = [
+    { n: 1,  x: 500, y: 620, mile: 0.0,  elev: 9085, gain: 0,
+      title: "Big Sandy Trailhead",
+      coords: "42.6870° N, 109.2698° W",
+      water: "No",
+      note: "Register at the kiosk and start north on the Big Sandy Trail. Gravel road access from Boulder or Farson; the last 15 miles are washboard. Pit toilets, no potable water at the lot.",
+      tags: ["Trailhead", "Register", "Pit toilet"] },
+
+    { n: 2,  x: 400, y: 340, mile: 7.5, elev: 9900, gain: 815,
+      title: "Marms & Dads Lakes",
+      coords: "Fremont Trail · N of Big Sandy",
+      water: "Yes",
+      note: "Good first-night camps in stringer pines above the lakeshore. Fremont Trail junction is 0.3 mi south; stay on the west branch to reach Washakie Creek.",
+      tags: ["Camp", "Water", "Trail jct."] },
+
+    { n: 3,  x: 405, y: 235, mile: 13.0, elev: 10363, gain: 1278,
+      title: "Washakie Lake",
+      coords: "Below Washakie Pass, west",
+      water: "Yes",
+      note: "Deep blue lake in a treeless cirque under the Divide. Excellent last-water camp before the pass. Wind-exposed — pitch behind rock or krummholz.",
+      tags: ["Alpine", "Camp", "Wind-exposed"] },
+
+    { n: 4,  x: 500, y: 175, mile: 15.0, elev: 11611, gain: 2526,
+      title: "Washakie Pass",
+      coords: "Continental Divide crossing",
+      water: "No",
+      note: "First 11,000-ft pass — a rock-strewn saddle between Mt. Geikie and Bonneville. Descent east opens views of the South Fork Cirque. Snowfield can linger into July on the east slope.",
+      tags: ["High point", "Divide", "No shelter"] },
+
+    { n: 5,  x: 700, y: 265, mile: 19.0, elev: 9980, gain: 2526,
+      title: "Bear Ears Trail Junction",
+      coords: "East of Continental Divide",
+      water: "Yes",
+      note: "Junction with the Bear Ears Trail. Turn south toward Grave Lake / Lizard Head Meadows. This is your last easy water before the plateau climb — filter for a big carry.",
+      tags: ["Trail jct.", "Water top-off"] },
+
+    { n: 6,  x: 760, y: 400, mile: 24.0, elev: 11864, gain: 4410,
+      title: "Lizard Head Plateau",
+      coords: "High point of the loop",
+      water: "No",
+      note: "The trip's roof: three miles above 11,000 ft on an open tundra plateau under Lizard Head Peak. No shelter, no water — commit early and clear before storms build.",
+      tags: ["High point", "Exposed", "Tundra"] },
+
+    { n: 7,  x: 640, y: 515, mile: 28.0, elev: 10166, gain: 4410,
+      title: "Lonesome Lake · Cirque of the Towers",
+      coords: "42.7642° N, 109.1908° W",
+      water: "Yes",
+      note: "The destination. Granite spires — Pingora, Wolf's Head, Warbonnet, Warriors — ring the basin. Camp 200+ ft from the lake per Forest Service rule; the north-shore benches are legal and stunning.",
+      tags: ["Icon", "Camp", "Fragile"] },
+
+    { n: 8,  x: 590, y: 555, mile: 30.0, elev: 10790, gain: 5040,
+      title: "Jackass Pass",
+      coords: "Cirque exit, southwest",
+      water: "No",
+      note: "Bouldery, faint in places — a scrambly pass rather than a trail. Turn around at the top for the classic Cirque photograph. Slick when wet; use poles.",
+      tags: ["Scramble", "Photo", "Pass"] },
+
+    { n: 9,  x: 570, y: 490, mile: 31.5, elev: 9900, gain: 5040,
+      title: "North & Arrowhead Lakes",
+      coords: "SW of the Cirque",
+      water: "Yes",
+      note: "String of small alpine lakes on the drop to Big Sandy Lake. Good spots for a snack and a rinse; not ideal camps (crowded, buggy).",
+      tags: ["Water", "Rest"] },
+
+    { n: 10, x: 570, y: 480, mile: 32.5, elev: 9700, gain: 5040,
+      title: "Big Sandy Lake",
+      coords: "Below the Cirque exit",
+      water: "Yes",
+      note: "Back to the crossroads. Popular basecamp; expect other parties. From here it's 5.5 mostly-flat miles down the Big Sandy Trail to the car.",
+      tags: ["Camp", "Water", "Junction"] }
+  ];
+  // Note: pin 10 sits just above pin 9 in the SVG — offset slightly to prevent overlap.
+  WAYPOINTS[9].x = 555; WAYPOINTS[9].y = 470;
+
+  // ————— Draw waypoints —————
+  const svgNS = "http://www.w3.org/2000/svg";
+  const wpLayer = document.getElementById("waypoints");
+  WAYPOINTS.forEach((w, i) => {
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("class", "wp");
+    g.setAttribute("transform", `translate(${w.x} ${w.y})`);
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("role", "button");
+    g.setAttribute("aria-label", `${w.title}, mile ${w.mile}`);
+    g.dataset.idx = i;
+
+    const halo = document.createElementNS(svgNS, "circle");
+    halo.setAttribute("r", "18"); halo.setAttribute("class", "halo");
+    g.appendChild(halo);
+
+    const pin = document.createElementNS(svgNS, "circle");
+    pin.setAttribute("r", "11"); pin.setAttribute("class", "pin");
+    g.appendChild(pin);
+
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("class", "pin-num");
+    t.textContent = w.n;
+    g.appendChild(t);
+
+    wpLayer.appendChild(g);
+    g.addEventListener("click", () => select(i));
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); }
+    });
+  });
+
+  // ————— Panel —————
+  let current = 0;
+  const el = id => document.getElementById(id);
+  function select(i) {
+    current = (i + WAYPOINTS.length) % WAYPOINTS.length;
+    const w = WAYPOINTS[current];
+    document.querySelectorAll(".wp").forEach((g, k) => g.classList.toggle("is-active", k === current));
+    el("p-order").textContent = `Waypoint ${w.n} · ${WAYPOINTS.length}`;
+    el("p-mile").textContent  = `Mile ${w.mile.toFixed(1)}`;
+    el("p-title").textContent = w.title;
+    el("p-coords").textContent = w.coords;
+    el("p-elev").textContent  = w.elev.toLocaleString() + "′";
+    el("p-gain").textContent  = w.gain ? "+" + w.gain.toLocaleString() + "′" : "—";
+    el("p-water").textContent = w.water;
+    el("p-note").textContent  = w.note;
+    const tags = el("p-tags");
+    tags.innerHTML = "";
+    w.tags.forEach(t => {
+      const s = document.createElement("span");
+      s.className = "tag"; s.textContent = t;
+      tags.appendChild(s);
+    });
+    el("prevBtn").disabled = false;
+    el("nextBtn").disabled = false;
+    // highlight profile marker
+    document.querySelectorAll(".prof-pin").forEach((g, k) => g.classList.toggle("is-active", k === current));
+  }
+  el("prevBtn").addEventListener("click", () => select(current - 1));
+  el("nextBtn").addEventListener("click", () => select(current + 1));
+
+  // ————— Elevation profile —————
+  (function buildProfile(){
+    const svg = document.getElementById("profile");
+    const W = 1000, H = 260, PAD = { l: 46, r: 24, t: 22, b: 34 };
+    const maxMi = 36, minEl = 9000, maxEl = 12000;
+    const px = mi => PAD.l + (mi / maxMi) * (W - PAD.l - PAD.r);
+    const py = ft => PAD.t + (1 - (ft - minEl) / (maxEl - minEl)) * (H - PAD.t - PAD.b);
+
+    // grid + axis
+    const grid = document.createElementNS(svgNS, "g");
+    grid.setAttribute("stroke", "var(--rule)");
+    grid.setAttribute("stroke-width", "0.6");
+    for (let ft = 9000; ft <= 12000; ft += 500) {
+      const y = py(ft);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", PAD.l); line.setAttribute("x2", W - PAD.r);
+      line.setAttribute("y1", y); line.setAttribute("y2", y);
+      line.setAttribute("stroke-dasharray", ft % 1000 === 0 ? "none" : "2 4");
+      grid.appendChild(line);
+      const lbl = document.createElementNS(svgNS, "text");
+      lbl.setAttribute("x", PAD.l - 8); lbl.setAttribute("y", y + 3);
+      lbl.setAttribute("text-anchor", "end");
+      lbl.setAttribute("font-family", "var(--f-mono)");
+      lbl.setAttribute("font-size", "9.5");
+      lbl.setAttribute("letter-spacing", ".08em");
+      lbl.setAttribute("fill", "var(--ink-soft)");
+      lbl.textContent = (ft/1000).toFixed(1) + "k";
+      grid.appendChild(lbl);
+    }
+    for (let mi = 0; mi <= 36; mi += 6) {
+      const x = px(mi);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", x); line.setAttribute("x2", x);
+      line.setAttribute("y1", PAD.t); line.setAttribute("y2", H - PAD.b);
+      line.setAttribute("stroke-dasharray", "2 4");
+      line.setAttribute("opacity", ".6");
+      grid.appendChild(line);
+      const lbl = document.createElementNS(svgNS, "text");
+      lbl.setAttribute("x", x); lbl.setAttribute("y", H - PAD.b + 16);
+      lbl.setAttribute("text-anchor", "middle");
+      lbl.setAttribute("font-family", "var(--f-mono)");
+      lbl.setAttribute("font-size", "9.5");
+      lbl.setAttribute("letter-spacing", ".08em");
+      lbl.setAttribute("fill", "var(--ink-soft)");
+      lbl.textContent = "mi " + mi;
+      grid.appendChild(lbl);
+    }
+    svg.appendChild(grid);
+
+    // Interpolated ridge line (using waypoints as anchors)
+    // Add a synthetic final point at mile 36 back at trailhead.
+    const pts = [...WAYPOINTS.map(w => ({mi:w.mile, ft:w.elev})), {mi:36, ft:9085}];
+    let d = "M " + px(pts[0].mi) + " " + py(pts[0].ft);
+    for (let i = 1; i < pts.length; i++) {
+      const p0 = pts[i-1], p1 = pts[i];
+      const cx = (px(p0.mi) + px(p1.mi)) / 2;
+      d += ` C ${cx} ${py(p0.ft)}, ${cx} ${py(p1.ft)}, ${px(p1.mi)} ${py(p1.ft)}`;
+    }
+    // area under curve
+    const area = document.createElementNS(svgNS, "path");
+    area.setAttribute("d", d + ` L ${px(36)} ${py(minEl)} L ${px(0)} ${py(minEl)} Z`);
+    area.setAttribute("fill", "var(--trail)");
+    area.setAttribute("opacity", ".08");
+    svg.appendChild(area);
+
+    const line = document.createElementNS(svgNS, "path");
+    line.setAttribute("d", d);
+    line.setAttribute("fill", "none");
+    line.setAttribute("stroke", "var(--trail)");
+    line.setAttribute("stroke-width", "2");
+    line.setAttribute("stroke-linecap", "round");
+    svg.appendChild(line);
+
+    // Continental Divide crossings shaded — just mark passes
+    WAYPOINTS.forEach((w, i) => {
+      const g = document.createElementNS(svgNS, "g");
+      g.setAttribute("class", "wp prof-pin");
+      g.setAttribute("transform", `translate(${px(w.mile)} ${py(w.elev)})`);
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", `${w.title}, mile ${w.mile}, ${w.elev} feet`);
+
+      const halo = document.createElementNS(svgNS, "circle");
+      halo.setAttribute("r", "12"); halo.setAttribute("class", "halo");
+      g.appendChild(halo);
+
+      const pin = document.createElementNS(svgNS, "circle");
+      pin.setAttribute("r", "8"); pin.setAttribute("class", "pin");
+      g.appendChild(pin);
+
+      const t = document.createElementNS(svgNS, "text");
+      t.setAttribute("class", "pin-num");
+      t.setAttribute("font-size", "9");
+      t.textContent = w.n;
+      g.appendChild(t);
+
+      // small label above
+      const lbl = document.createElementNS(svgNS, "text");
+      lbl.setAttribute("y", "-14");
+      lbl.setAttribute("text-anchor", "middle");
+      lbl.setAttribute("font-family", "var(--f-mono)");
+      lbl.setAttribute("font-size", "9");
+      lbl.setAttribute("letter-spacing", ".06em");
+      lbl.setAttribute("fill", "var(--ink-soft)");
+      lbl.textContent = w.elev.toLocaleString();
+      g.appendChild(lbl);
+
+      g.addEventListener("click", () => select(i));
+      g.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); }
+      });
+      svg.appendChild(g);
+    });
+  })();
+
+  // ————— Theme toggle —————
+  const btn = document.getElementById("themeBtn");
+  btn.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : cur === "light" ? "dark" :
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", next);
+  });
+
+  // initial selection
+  select(0);
+</script>

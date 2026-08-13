@@ -683,13 +683,13 @@ body.prof #map{bottom:132px}
 
 #ui{position:absolute;top:0;left:0;bottom:0;width:336px;z-index:1002;
   background:var(--panel);border-right:1px solid var(--edge);
-  display:flex;flex-direction:column;transition:transform .22s ease}
-#ui.collapsed{transform:translateX(-100%)}
+  display:flex;flex-direction:column;transition:transform .22s ease;transform:translateX(0)}
+body.menu-closed #ui{transform:translateX(-100%)}
 #scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:1001;display:none}
 #toggle{position:absolute;top:12px;left:348px;z-index:1003;background:var(--panel);
   color:var(--fg);border:1px solid var(--edge);width:44px;height:44px;border-radius:8px;
   cursor:pointer;font-size:18px;transition:left .22s ease;display:grid;place-items:center}
-#ui.collapsed ~ #toggle{left:12px}
+body.menu-closed #toggle{left:12px}
 #closep{display:none;position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:8px;
   background:var(--panel-2);border:1px solid var(--edge);color:var(--fg);font-size:17px;cursor:pointer;
   place-items:center;z-index:3}
@@ -787,13 +787,17 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
 .leaflet-bar a:hover{background:var(--panel-2)!important}
 .leaflet-control-scale-line{background:rgba(15,21,27,.85)!important;color:var(--dim)!important;
   border-color:var(--edge)!important;font-family:var(--mono);font-size:10px}
-/* Narrow screens: sheet over a full-bleed map instead of a fixed sidebar. */
+/* Narrow screens: sheet over a full-bleed map. Emitted twice — media query plus
+   .force-narrow, which JS sets when the screen is small but the viewport claims
+   otherwise (iOS Quick Look previews a downloaded .html at desktop width). */
 @media (max-width:899px){
-  #ui{width:min(340px,88vw);box-shadow:0 0 46px rgba(0,0,0,.65)}
+  #ui{width:min(340px,88vw);box-shadow:0 0 46px rgba(0,0,0,.65);transform:translateX(-100%)}
+  body.menu-open #ui{transform:translateX(0)}
   #toggle{left:12px;top:12px}
-  #ui:not(.collapsed) ~ #scrim{display:block}
+  body.menu-open #scrim{display:block}
   #closep{display:grid}
-  #profile{left:0;height:104px}#profile svg{height:104px}
+  #profile{left:0;height:104px}
+  #profile svg{height:104px}
   body.prof #map{bottom:104px}
   body.prof #readout{bottom:114px}
   .sec{padding:14px 16px}
@@ -801,6 +805,19 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
   .lyr{padding:12px 6px;font-size:12.5px}
   .wp{padding:12px 8px}
 }
+body.force-narrow #ui{width:min(340px,88vw);box-shadow:0 0 46px rgba(0,0,0,.65);transform:translateX(-100%)}
+body.force-narrow.menu-open #ui{transform:translateX(0)}
+body.force-narrow #toggle{left:12px;top:12px}
+body.force-narrow.menu-open #scrim{display:block}
+body.force-narrow #closep{display:grid}
+body.force-narrow #profile{left:0;height:104px}
+body.force-narrow #profile svg{height:104px}
+body.force-narrow.prof #map{bottom:104px}
+body.force-narrow.prof #readout{bottom:114px}
+body.force-narrow .sec{padding:14px 16px}
+body.force-narrow .btn{padding:12px 8px;font-size:12.5px}
+body.force-narrow .lyr{padding:12px 6px;font-size:12.5px}
+body.force-narrow .wp{padding:12px 8px}
 </style>
 </head>
 <body class="prof">
@@ -810,7 +827,7 @@ a.leaflet-popup-close-button{color:var(--faint)!important}
   <button id="closep" title="Close menu">&#10005;</button>
   <div class="hd">
     <h1>Washakie Pass Loop to Cirque of the Towers</h1>
-    <div class="src">&#10003; Real GPX track &middot; 8,424 points</div>
+    <div class="src">&#10003; Real GPX &middot; 2D &middot; build 5</div>
   </div>
   <div class="figs">
     <div class="fig"><div class="v">36.2</div><div class="k">Miles</div></div>
@@ -938,11 +955,20 @@ function setLayer(k){
 const halo=L.polyline(TRACK,{color:'#0B0F14',weight:8,opacity:.6,lineJoin:'round'});
 const line=L.polyline(TRACK,{color:'#FF5A1F',weight:3.6,opacity:.98,lineJoin:'round'});
 const group=L.layerGroup([halo,line]).addTo(map);
-const narrow=()=>innerWidth<900;
-function panelOpen(){return !document.querySelector('#ui').classList.contains('collapsed')}
+function applyViewportMode(){
+  const scr=(window.screen&&screen.width)?screen.width:9999;
+  document.body.classList.toggle('force-narrow', scr<900);
+}
+const narrow=()=>document.body.classList.contains('force-narrow')||innerWidth<900;
+function panelOpen(){
+  return narrow()? document.body.classList.contains('menu-open')
+                 : !document.body.classList.contains('menu-closed');
+}
 function setPanel(open){
-  document.querySelector('#ui').classList.toggle('collapsed',!open);
-  document.body.classList.toggle('nopanel',!open);
+  const b=document.body.classList;
+  if(narrow()){ b.toggle('menu-open',open); b.remove('menu-closed'); }
+  else { b.toggle('menu-closed',!open); b.remove('menu-open'); }
+  b.toggle('nopanel',!open);
   setTimeout(()=>{map.invalidateSize();drawProfile()},260);
 }
 /* Close the sheet after anything that changes the map, or the control looks dead. */
@@ -1041,10 +1067,9 @@ $('#wplist').innerHTML=WPS.map((w,i)=>
    <div class="el">${w.ft.toLocaleString()}'</div></div>`).join('');
 document.querySelectorAll('.wp').forEach(e=>e.onclick=()=>select(+e.dataset.i));
 
-$('#toggle').onclick=()=>{
-  $('#ui').classList.toggle('collapsed');
-  document.body.classList.toggle('nopanel');
-  setTimeout(()=>{map.invalidateSize();drawProfile()},260);};
+$('#toggle').onclick=()=>setPanel(!panelOpen());
+$('#closep').onclick=()=>setPanel(false);
+$('#scrim').onclick=()=>setPanel(false);
 $('#fit').onclick=()=>{FIT();afterMapAction()};
 $('#toggleRoute').onclick=e=>{
   if(map.hasLayer(group)){map.removeLayer(group);e.target.textContent='Show track'}
@@ -1137,8 +1162,8 @@ $('#gpx').onclick=()=>{
 };
 
 /* ---------- boot ---------- */
+applyViewportMode();
 if(narrow()){                        // phone: lead with the map, not the menu
-  document.querySelector('#ui').classList.add('collapsed');
   document.body.classList.add('nopanel');
   document.body.classList.remove('prof');
 }
@@ -1150,7 +1175,8 @@ psvg.addEventListener('mouseleave',onProfileLeave);
 let rzT; addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(drawProfile,150)});
 psvg.addEventListener('touchend',onProfileLeave);
 if(narrow()) $('#toggleProf').textContent='Show profile';
-addEventListener('orientationchange',()=>setTimeout(()=>{map.invalidateSize();drawProfile()},300));
+addEventListener('orientationchange',()=>setTimeout(()=>{applyViewportMode();map.invalidateSize();drawProfile()},300));
+addEventListener('resize',()=>applyViewportMode());
 
 openDB().then(async()=>{
   setLayer('topo'); FIT(); select(0,false);

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SkyLab"/>
+<meta name="theme-color" content="#0f172a"/>
+<title>SkyLab — Flight log</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Sign-in and sync. If it can't load, the log still works on this device. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f1f5f9;--card:#fff;--line:#e2e8f0;--ink:#0f172a;--muted:#475569;--faint:#94a3b8;--accent:#2563eb;--accent-soft:#eff6ff;--danger:#dc2626;}
+body.dark{--bg:#0b1220;--card:#111827;--line:#1f2937;--ink:#f1f5f9;--muted:#cbd5e1;--faint:#64748b;--accent:#60a5fa;--accent-soft:#172554;--danger:#f87171;}
+html,body{height:100%;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%;}
+button,input,textarea{font:inherit;color:inherit;}
+button{cursor:pointer;}
+#wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+#head{flex-shrink:0;display:flex;align-items:center;gap:8px;background:#0f172a;color:#fff;padding:calc(8px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) 8px calc(12px + env(safe-area-inset-left,0px));}
+#head .ttl{min-width:0;flex:1;}
+#head h1{font-size:15px;font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#head .sub{font-size:11px;color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hbtn{flex-shrink:0;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:9px;padding:7px 11px;font-size:13px;font-weight:700;text-decoration:none;line-height:1.1;}
+.hbtn.primary{background:#2563eb;border-color:#2563eb;}
+.hbtn:disabled{opacity:.6;}
+#main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+#page{max-width:900px;margin:0 auto;padding:14px calc(12px + env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0;}
+.card.flush{padding:0;overflow:hidden;}
+.card h2{font-size:13px;font-weight:800;margin-bottom:10px;display:flex;align-items:baseline;gap:8px;}
+.card h2 span{margin-left:auto;font-size:11px;font-weight:500;color:var(--faint);}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;}
+@media(min-width:620px){.grid{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.st .l{font-size:11px;color:var(--faint);}
+.st .v{font-size:18px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st .s{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row{display:flex;align-items:center;gap:12px;width:100%;background:none;border:none;border-top:1px solid var(--line);padding:10px 0;text-align:left;}
+.row:first-of-type{border-top:none;}
+.row .d{width:40px;flex-shrink:0;text-align:center;line-height:1.15;}
+.row .d small{display:block;font-size:11px;color:var(--faint);}
+.row .d b{font-size:16px;font-variant-numeric:tabular-nums;}
+.row .m{flex:1;min-width:0;}
+.row .m b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row .m small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.row .t{flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+.empty{text-align:center;color:var(--faint);font-size:14px;line-height:1.5;padding:26px 8px;}
+.empty b{color:var(--ink);}
+.note{font-size:13px;color:var(--muted);}
+.note.bad{color:var(--danger);}
+#map-box{height:46vh;min-height:260px;max-height:520px;position:relative;isolation:isolate;background:var(--bg);}
+#map{height:100%;width:100%;}
+#map-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 24px;color:var(--faint);font-size:14px;}
+#layers{position:absolute;top:8px;right:8px;z-index:1000;display:flex;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+#layers button{border:none;background:none;padding:7px 10px;font-size:12px;font-weight:700;}
+#layers button.on{background:#2563eb;color:#fff;}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:9px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+.legend .k{color:var(--faint);}
+.readout{height:40px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.readout b{display:block;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.readout small{display:block;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hint{height:40px;display:flex;align-items:center;font-size:12px;color:var(--faint);}
+#chart{width:100%;user-select:none;-webkit-user-select:none;}
+#chart svg{display:block;touch-action:pan-y;cursor:crosshair;}
+#chart text{font-size:10px;fill:var(--faint);font-variant-numeric:tabular-nums;}
+label.f{display:block;}
+label.f span{display:block;font-size:11px;color:var(--faint);margin-bottom:4px;}
+label.f input,label.f textarea,.acct input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:9px 11px;font-size:16px;outline:none;}
+label.f input:focus,label.f textarea:focus,.acct input:focus{border-color:var(--accent);}
+label.f textarea{resize:vertical;min-height:76px;}
+.fields{display:grid;gap:10px;}
+@media(min-width:620px){.fields{grid-template-columns:1fr 1fr;}.fields .wide{grid-column:1/-1;}}
+.btns{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;}
+.btn{background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);border-radius:9px;padding:9px 12px;font-size:13px;font-weight:700;}
+.btn:disabled{opacity:.5;}
+.btn.solid{background:#2563eb;border-color:#2563eb;color:#fff;}
+.btn.plain{background:none;border-color:transparent;color:var(--danger);}
+.btns .fn{margin-left:auto;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.acct{display:grid;gap:8px;}
+.acct p{font-size:13px;color:var(--muted);line-height:1.45;}
+.drop #page{outline:2px dashed var(--accent);outline-offset:-6px;border-radius:16px;}
+.leaflet-container{font-family:inherit;background:var(--bg);}
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem('updraft_dark_v1')==='1')document.body.classList.add('dark');}catch(e){}</script>
+<div id="wrap">
+  <div id="head">
+    <a class="hbtn" id="back" href="SkyLab.html" aria-label="Back to the map">‹ Map</a>
+    <div class="ttl"><h1 id="title">Flight log</h1><div class="sub" id="subtitle"></div></div>
+    <button class="hbtn" id="sync-btn" title="Sync">Sync</button>
+    <button class="hbtn primary" id="add-btn">Add flights</button>
+  </div>
+  <div id="main"><div id="page"></div></div>
+</div>
+<!-- No `accept`: iOS greys out .igc files in the picker when one is set. -->
+<input type="file" id="file" multiple hidden/>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════════════════
+// SkyLab flight log. Add the track files your flight instrument records (IGC,
+// GPX or KML): each becomes a logbook entry with its track on a map, an altitude
+// profile and the flight's numbers. Flights are kept on this device (IndexedDB)
+// and, once you sign in, synced through Supabase so every device has them.
+// Everything is computed in metric and shown in ft / mph / mi.
+// ════════════════════════════════════════════════════════════════════════════
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── Track files → GPS fixes {t: epoch ms, lat, lon, alt: m} ───────────────────
+function parseIgc(text){
+  const fixes=[];let day=null,glider,prev=-1,roll=0;
+  for(const raw of text.split(/\r?\n/)){
+    const line=raw.trim();
+    if(line.startsWith('HFDTE')||line.startsWith('HPDTE')){
+      // "HFDTE150826" or "HFDTEDATE:150826,01"
+      const m=line.match(/(\d{2})(\d{2})(\d{2})/);
+      if(m){day=Date.UTC(2000+ +m[3],+m[2]-1,+m[1]);prev=-1;roll=0;}
+    }else if(/^H[FOP]GTY/.test(line)){
+      const g=line.slice(line.indexOf(':')+1).trim();
+      if(line.includes(':')&&g)glider=g;
+    }else if(line[0]==='B'&&line.length>=35){
+      const m=line.match(/^B(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})([NS])(\d{3})(\d{5})([EW])([AV])([-\d]\d{4})([-\d]\d{4})/);
+      if(!m||day===null)continue;
+      const secs=+m[1]*3600+ +m[2]*60+ +m[3];
+      // A flight that runs past midnight UTC (evening flights in the US do).
+      if(prev>=0&&secs<prev-12*3600)roll+=864e5;
+      prev=secs;
+      const lat=(+m[4]+ +m[5]/60000)*(m[6]==='S'?-1:1);
+      const lon=(+m[7]+ +m[8]/60000)*(m[9]==='W'?-1:1);
+      if(lat===0&&lon===0)continue;
+      const baro=+m[11],gps=+m[12];
+      fixes.push({t:day+roll+secs*1000,lat,lon,alt:gps!==0?gps:baro});
+    }
+  }
+  return {format:'igc',fixes,glider};
+}
+function xmlDoc(text){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length)throw new Error("That file is damaged and can't be read.");
+  return doc;
+}
+// Elements by tag name, ignoring any namespace prefix ("gx:coord" matches "coord").
+const tags=(root,name)=>Array.from(root.getElementsByTagNameNS('*',name));
+const num=v=>Number.isFinite(v);
+function parseGpx(text){
+  const fixes=[];
+  for(const pt of tags(xmlDoc(text),'trkpt')){
+    const lat=Number(pt.getAttribute('lat')),lon=Number(pt.getAttribute('lon'));
+    const t=Date.parse((tags(pt,'time')[0]||{}).textContent||'');
+    const alt=Number((tags(pt,'ele')[0]||{}).textContent);
+    if(num(lat)&&num(lon)&&num(t))fixes.push({t,lat,lon,alt:num(alt)?alt:0});
+  }
+  return {format:'gpx',fixes};
+}
+function parseKml(text){
+  const fixes=[];
+  for(const track of tags(xmlDoc(text),'Track')){
+    const whens=tags(track,'when'),coords=tags(track,'coord');
+    for(let i=0;i<Math.min(whens.length,coords.length);i++){
+      const t=Date.parse(whens[i].textContent||'');
+      const [lon,lat,alt]=(coords[i].textContent||'').trim().split(/\s+/).map(Number);
+      if(num(lat)&&num(lon)&&num(t))fixes.push({t,lat,lon,alt:num(alt)?alt:0});
+    }
+  }
+  return {format:'kml',fixes};
+}
+// Decided by what's in the file; the name is only a hint.
+function parseTrack(text,fileName){
+  const head=text.slice(0,2000),ext=String(fileName||'').toLowerCase().split('.').pop();
+  let p;
+  if(/<gpx[\s>]/i.test(head)||ext==='gpx')p=parseGpx(text);
+  else if(/<kml[\s>]/i.test(head)||ext==='kml')p=parseKml(text);
+  else if(/^A[A-Z0-9]{3}/m.test(head)||/^B\d{6}\d{7}[NS]/m.test(text)||ext==='igc')p=parseIgc(text);
+  else if(text.startsWith('PK'))throw new Error('That is a zipped file (KMZ). Export it as IGC, GPX or KML instead.');
+  else throw new Error("That doesn't look like a flight track. Use an IGC, GPX or KML file.");
+  p.fixes.sort((a,b)=>a.t-b.t);
+  // One fix per second at most; duplicate timestamps break the speed maths.
+  p.fixes=p.fixes.filter((f,i,all)=>i===0||f.t-all[i-1].t>=1000);
+  if(p.fixes.length<10)throw new Error(p.format==='kml'?'No timed track in that KML file. Export it as IGC or GPX instead.':'No GPS track found in that file.');
+  return p;
+}
+
+// ── Geometry and analysis ─────────────────────────────────────────────────────
+const rad=d=>d*Math.PI/180;
+function dist(a,b){ // great-circle metres
+  const dLat=rad(b.lat-a.lat),dLon=rad(b.lon-a.lon);
+  const h=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*6371000*Math.asin(Math.sqrt(h));
+}
+// Climb rate and ground speed at each fix, measured across ~10 s so GPS noise doesn't show.
+function rates(fixes){
+  const n=fixes.length,vario=new Float32Array(n),speed=new Float32Array(n);
+  let lo=0,hi=0;
+  for(let i=0;i<n;i++){
+    while(fixes[i].t-fixes[lo].t>5000)lo++;
+    while(hi<n-1&&fixes[hi].t-fixes[i].t<5000)hi++;
+    const dt=(fixes[hi].t-fixes[lo].t)/1000;
+    if(dt<=0)continue;
+    let d=0;for(let k=lo;k<hi;k++)d+=dist(fixes[k],fixes[k+1]);
+    vario[i]=(fixes[hi].alt-fixes[lo].alt)/dt;speed[i]=d/dt;
+  }
+  return {vario,speed};
+}
+// Trim hiking up, waiting on launch and packing up from both ends. "Flying" is faster
+// than a brisk walk or climbing/sinking faster than a hike, held for several fixes so
+// one GPS jump doesn't count. Hovering mid-flight is fine: only the ends are trimmed.
+function trimToFlight(fixes){
+  const {vario,speed}=rates(fixes);
+  const flying=i=>speed[i]>4||Math.abs(vario[i])>1.2;
+  const held=(i,step)=>{for(let k=0;k<5;k++){const j=i+k*step;if(j<0||j>=fixes.length||!flying(j))return false;}return true;};
+  let a=0;while(a<fixes.length&&!held(a,1))a++;
+  let b=fixes.length-1;while(b>a&&!held(b,-1))b--;
+  if(a>=b||fixes[b].t-fixes[a].t<30000)return fixes; // nothing flight-like: keep it all
+  return fixes.slice(a,b+1);
+}
+function analyze(all){
+  const fixes=trimToFlight(all),r=rates(fixes),along=new Float32Array(fixes.length);
+  for(let i=1;i<fixes.length;i++)along[i]=along[i-1]+dist(fixes[i-1],fixes[i]);
+  return {fixes,vario:r.vario,speed:r.speed,along};
+}
+
+// SkyLab's launches (id, name, lat, lon), plus any you've added or moved on the map.
+const BASE_LAUNCHES=[["pom_s","POM – South Side",40.4567,-111.9027],["pom_n","POM – North Side",40.4745,-111.8928],["cherry","Cherry Canyon",40.515992,-111.817091],["the_g","The 'G'",40.3711,-111.702],["camels","Camel's",40.1826,-111.5684],["commodore","Commodore",40.3899,-112.2846],["buffalo_pk","Buffalo Peak",40.28408,-111.614253],["rock_canyon","Rock Canyon Launch",40.269563,-111.623685],["mahogany","Mahogany Ridge",40.426005,-111.719857],["crawford","Crawford's Ridge",41.6738,-111.0948],["francis","Francis Peak",41.0275,-111.8383],["the_v","The V",40.911,-111.8458],["bigbeacon","Big Beacon (Mt Wire)",40.770833,-111.799444],["grandeur","Grandeur Peak",40.7068,-111.7787],["olympus","Mt Olympus",40.661111,-111.798889],["midfinger","Middle Finger Ridge",40.486806,-112.035],["jupiter","Jupiter Peak",40.6133,-111.5399],["snowbird","Hidden Peak / Snowbird",40.560556,-111.645278],["inspo","Inspo",40.3013,-111.6258],["y_mtn","The Y",40.2482,-111.6197],["west_mtn","West Mountain",40.1005,-111.8216],["lake_mtn","Lake Mountain",40.280306,-111.935194],["nebo","Mt Nebo",39.821972,-111.760556],["horse_hv","Horse Heaven",39.49374,-111.83614],["cove","Cove Launch",38.634167,-112.060833],["monroe_pk","Monroe Peak",38.5414,-112.0733],["mt_edna","Mt Edna",38.38575,-112.336889],["mollies","Mollie's Nipple",37.127778,-113.298056],["brianhead","Brian Head Peak",37.681111,-112.83],["wm_stg","West Mtn (St George)",37.155556,-113.883333],["ibepah","Mt Ibepah",39.8275,-113.919889],["oceanside","Oceanside",45.4654,-123.971]];
+function launches(){
+  const out=new Map(BASE_LAUNCHES.map(([id,name,lat,lon])=>[id,{id,name,lat,lon}]));
+  try{
+    const moved=JSON.parse(localStorage.getItem('updraft_launchpos_v1'))||{};
+    for(const id in moved){const o=moved[id],s=out.get(id);if(s&&o&&num(o.lat)&&num(o.lon))Object.assign(s,{lat:o.lat,lon:o.lon,name:o.name||s.name});}
+    for(const s of JSON.parse(localStorage.getItem('updraft_customlaunch_v1'))||[])if(s&&s.id&&num(s.lat)&&num(s.lon))out.set(s.id,{id:s.id,name:s.name||'Launch',lat:s.lat,lon:s.lon});
+  }catch(e){}
+  return [...out.values()];
+}
+// Nearest launch within 1.5 km of takeoff.
+function nearestSite(p){
+  let best,bestD=1500;
+  for(const s of launches()){const d=dist(p,s);if(d<bestD){bestD=d;best=s;}}
+  return best;
+}
+
+const pad2=n=>String(n).padStart(2,'0');
+// Logbook entry for a parsed file. Distances m, altitudes m, rates and speeds m/s.
+function summarize(parsed,fileName){
+  const a=analyze(parsed.fixes),first=a.fixes[0],last=a.fixes[a.fixes.length-1];
+  let maxAlt=-Infinity,minAlt=Infinity,maxClimb=0,maxSink=0,maxSpeed=0,far=0;
+  for(let i=0;i<a.fixes.length;i++){
+    const f=a.fixes[i];
+    if(f.alt>maxAlt)maxAlt=f.alt;if(f.alt<minAlt)minAlt=f.alt;
+    if(a.vario[i]>maxClimb)maxClimb=a.vario[i];if(a.vario[i]<maxSink)maxSink=a.vario[i];
+    if(a.speed[i]>maxSpeed)maxSpeed=a.speed[i];
+    const d=dist(first,f);if(d>far)far=d;
+  }
+  const d=new Date(first.t);
+  const stamp=`${d.getUTCFullYear()}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+  const site=nearestSite(first),now=new Date().toISOString(),r1=n=>Math.round(n*10)/10;
+  const pt=f=>({lat:+f.lat.toFixed(5),lon:+f.lon.toFixed(5),alt:Math.round(f.alt)});
+  return {
+    id:'fl-'+stamp, // same takeoff moment = same flight, so a file imported twice isn't duplicated
+    format:parsed.format,fileName,
+    start:new Date(first.t).toISOString(),end:new Date(last.t).toISOString(),
+    durationSec:Math.round((last.t-first.t)/1000),
+    takeoff:pt(first),landing:pt(last),
+    maxAlt:Math.round(maxAlt),minAlt:Math.round(minAlt),
+    maxClimb:r1(maxClimb),maxSink:r1(maxSink),maxSpeed:r1(maxSpeed),
+    trackDist:Math.round(a.along[a.along.length-1]),straightDist:Math.round(dist(first,last)),farDist:Math.round(far),
+    siteId:site?site.id:null,siteName:site?site.name:'',wing:parsed.glider||'',notes:'',
+    createdAt:now,updatedAt:now,
+  };
+}
+
+// ── Units and labels ──────────────────────────────────────────────────────────
+const ft=m=>Math.round(m*3.28084);
+const mph=ms=>ms*2.23694;
+const fpm=ms=>Math.round(ms*196.85/10)*10;
+const signed=n=>(n>0?'+':'')+n.toLocaleString();
+const fmtMi=m=>{const v=m/1609.344;return (v<10?v.toFixed(1):Math.round(v))+' mi';};
+function fmtDur(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?`${h}h ${pad2(m)}m`:m?`${m}m`:`${sec}s`;}
+const fmtHours=sec=>{const h=sec/3600;return (h>=10?Math.round(h):h.toFixed(1))+' h';};
+const clock=t=>new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+const dayLabel=t=>new Date(t).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+const titleOf=f=>f.siteName||'Unknown launch';
+// Climb-rate colours: blue = sinking, grey = level, red = climbing.
+const VARIO=[{below:-2,color:'#1d5fb8',label:'Sink 400+'},{below:-0.5,color:'#6aa6ea',label:'Sink'},{below:0.5,color:'#8a8a94',label:'Level'},{below:2,color:'#ee8262',label:'Climb'},{below:Infinity,color:'#c8262c',label:'Climb 400+'}];
+const bucket=v=>VARIO.findIndex(s=>v<s.below);
+
+// ── On-device storage ─────────────────────────────────────────────────────────
+// One record per flight: {id, summary, track (file text, or null until downloaded),
+// dirty (changed here, not yet synced), deleted (waiting to be removed from the cloud)}.
+const mem=new Map(); // fallback when IndexedDB is unavailable (private browsing)
+let dbp=null;
+function db(){
+  if(!dbp){
+    dbp=new Promise((ok,fail)=>{
+      const r=indexedDB.open('skylab-flights',1);
+      r.onupgradeneeded=()=>r.result.createObjectStore('flights',{keyPath:'id'});
+      r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error);
+    });
+    dbp.catch(()=>{dbp=null;});
+  }
+  return dbp;
+}
+async function idb(mode,fn){
+  const d=await db();
+  return new Promise((ok,fail)=>{const r=fn(d.transaction('flights',mode).objectStore('flights'));r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error);});
+}
+async function dbAll(){try{return await idb('readonly',s=>s.getAll());}catch(e){return [...mem.values()];}}
+async function dbGet(id){try{return await idb('readonly',s=>s.get(id));}catch(e){return mem.get(id);}}
+async function dbPut(rec){mem.set(rec.id,rec);try{await idb('readwrite',s=>s.put(rec));}catch(e){}}
+async function dbDel(id){mem.delete(id);try{await idb('readwrite',s=>s.delete(id));}catch(e){}}
+
+let flights=[]; // summaries of everything not deleted, newest first
+async function reload(){
+  flights=(await dbAll()).filter(r=>!r.deleted).map(r=>r.summary).sort((a,b)=>b.start.localeCompare(a.start));
+}
+
+// ── Sign-in and sync (Supabase table `skylab_flights`, readable only by the owner) ─
+const SB_URL='https://beokhhjcujnmbjsiaegw.supabase.co';
+const SB_KEY='sb_publishable_MBiFecbPdNQJFw4ew1JdVA_AJx5mOhQ';
+const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'skylab.auth'}}):null;
+let session=null,syncState='',syncing=null;
+
+function setSync(text){syncState=text;renderHead();if(view==='account')render();}
+function syncNow(){
+  if(!sb||!session)return Promise.resolve();
+  if(!syncing)syncing=doSync().finally(()=>{syncing=null;});
+  return syncing;
+}
+async function doSync(){
+  if(navigator.onLine===false)return setSync('Offline: will sync later');
+  setSync('Syncing…');
+  try{
+    const {data:remote,error}=await sb.from('skylab_flights').select('id,summary,deleted');
+    if(error)throw error;
+    const cloud=new Map(remote.map(r=>[r.id,r]));
+    const local=new Map((await dbAll()).map(r=>[r.id,r]));
+    // Cloud → this device.
+    for(const r of remote){
+      const l=local.get(r.id);
+      if(r.deleted){
+        // Deleted elsewhere. One added or edited here since then is kept and goes back up.
+        if(l&&!(l.dirty&&!l.deleted)){await dbDel(r.id);local.delete(r.id);}
+        continue;
+      }
+      if(!l){const rec={id:r.id,summary:r.summary,track:null,dirty:false,deleted:false};await dbPut(rec);local.set(r.id,rec);}
+      else if(!l.deleted&&!(l.dirty&&l.summary.updatedAt>=r.summary.updatedAt)){l.summary=r.summary;l.dirty=false;await dbPut(l);}
+    }
+    // This device → cloud.
+    for(const l of local.values()){
+      const c=cloud.get(l.id),stamp=new Date().toISOString();
+      if(l.deleted){
+        if(c&&!c.deleted){const {error:e}=await sb.from('skylab_flights').update({deleted:true,track:'',updated_at:stamp}).eq('id',l.id);if(e)throw e;}
+        await dbDel(l.id);
+      }else if(l.dirty||!c){
+        // Leaving `track` out (a flight edited before its file was downloaded) keeps the cloud copy's.
+        const row={id:l.id,summary:l.summary,deleted:false,updated_at:stamp};
+        if(l.track)row.track=l.track;
+        const {error:e}=await sb.from('skylab_flights').upsert(row,{onConflict:'user_id,id'});if(e)throw e;
+        l.dirty=false;await dbPut(l);
+      }
+    }
+    await reload();
+    setSync('Synced '+clock(Date.now()));
+    if(view!=='flight')render();
+  }catch(e){
+    const msg=String(e&&e.message||e);
+    setSync(/row-level security|permission denied/i.test(msg)?"This account can't use the flight log":'Sync failed: will retry');
+  }
+}
+// The original file, from this device or the cloud; null when neither has it.
+async function loadTrack(id){
+  const rec=await dbGet(id);
+  if(rec&&rec.track)return rec.track;
+  if(!sb||!session)return null;
+  const {data,error}=await sb.from('skylab_flights').select('track').eq('id',id).maybeSingle();
+  if(error)throw new Error('Could not download this track. Check your connection.');
+  const text=data&&data.track||null;
+  if(text&&rec){rec.track=text;await dbPut(rec);}
+  return text;
+}
+
+// ── Screens ───────────────────────────────────────────────────────────────────
+let view='list',openId=null,notes=[],busy=false;
+let map=null,mapDot=null,mapTiles=null,analysis=null,cursor=null,rawTrack=null;
+
+function renderHead(){
+  const f=view==='flight'&&flights.find(x=>x.id===openId);
+  $('title').textContent=f?titleOf(f):view==='account'?'Sync':'Flight log';
+  $('subtitle').textContent=f?`${dayLabel(f.start)} · ${clock(f.start)} – ${clock(f.end)}`
+    :view==='account'?'':flights.length?`${flights.length} ${flights.length===1?'flight':'flights'} · ${fmtHours(flights.reduce((n,x)=>n+x.durationSec,0))} airtime · ${session?syncState||'Signed in':'On this device only'}`
+    :session?syncState||'Signed in':'On this device only';
+  const back=$('back');
+  if(view==='list'){back.textContent='‹ Map';back.href='SkyLab.html';}
+  else{back.textContent='‹ Log';back.href='#';}
+  $('add-btn').hidden=view!=='list';
+  $('add-btn').disabled=busy;$('add-btn').textContent=busy?'Reading…':'Add flights';
+  $('sync-btn').hidden=view!=='list';
+}
+function show(v,id){
+  if(map){map.remove();map=null;mapDot=null;mapTiles=null;}
+  view=v;openId=id||null;analysis=null;cursor=null;rawTrack=null;chartSeek=null;
+  render();$('main').scrollTop=0;
+}
+function render(){
+  renderHead();
+  if(view==='flight')return renderFlight();
+  if(view==='account')return renderAccount();
+  renderList();
+}
+
+const stat=(l,v,s)=>`<div class="st"><div class="l">${esc(l)}</div><div class="v">${esc(v)}</div>${s?`<div class="s">${esc(s)}</div>`:''}</div>`;
+
+function renderList(){
+  let html=notes.map(n=>`<p class="note${n.ok?'':' bad'}">${esc(n.text)}</p>`).join('');
+  if(!flights.length){
+    html+=`<div class="card"><p class="empty">No flights yet. Tap <b>Add flights</b> and pick the track files from your tracker (IGC, GPX or KML). You can pick several at once.${session?'':'<br><br>Tap <b>Sync</b> to sign in and keep your log on every device.'}</p></div>`;
+  }else{
+    const year=new Date().getFullYear(),inYear=flights.filter(f=>new Date(f.start).getFullYear()===year);
+    const total=l=>l.reduce((n,f)=>n+f.durationSec,0);
+    html+=`<div class="card"><div class="grid">${stat('Flights',String(flights.length))}${stat('Airtime',fmtHours(total(flights)))}${stat('In '+year,`${inYear.length} · ${fmtHours(total(inYear))}`)}${stat('Longest flight',fmtDur(Math.max(...flights.map(f=>f.durationSec))))}</div></div>`;
+    const years=new Map();
+    for(const f of flights){const y=new Date(f.start).getFullYear();if(!years.has(y))years.set(y,[]);years.get(y).push(f);}
+    for(const [y,list] of years){
+      html+=`<div class="card"><h2>${y}<span>${list.length} · ${fmtHours(total(list))}</span></h2>`+list.map(f=>{
+        const d=new Date(f.start);
+        return `<button class="row" data-open="${esc(f.id)}"><span class="d"><small>${d.toLocaleDateString('en-US',{month:'short'})}</small><b>${d.getDate()}</b></span><span class="m"><b>${esc(titleOf(f))}</b><small>${ft(f.maxAlt).toLocaleString()} ft max · ${fmtMi(f.trackDist)}${f.wing?' · '+esc(f.wing):''}</small></span><span class="t">${fmtDur(f.durationSec)}</span></button>`;
+      }).join('')+'</div>';
+    }
+  }
+  $('page').innerHTML=html;
+}
+
+function renderAccount(){
+  let html;
+  if(!sb)html=`<div class="card acct"><p>Sync couldn't load (no connection?). Your flights are still saved on this device; reopen this page when you're online.</p></div>`;
+  else if(session)html=`<div class="card acct"><p>Signed in as <b>${esc(session.user.email)}</b>. Flights you add on any device show up on all of them.</p><p>${esc(syncState)}</p><div class="btns" style="margin-top:4px"><button class="btn solid" id="sync-now">Sync now</button><button class="btn" id="sign-out">Sign out</button></div></div>`;
+  else html=`<form class="card acct" id="sign-in"><p>Sign in to back up your flights and see them on every device. Until then they stay on this device only.</p><input type="email" id="email" placeholder="Email" autocomplete="username" required/><input type="password" id="password" placeholder="Password" autocomplete="current-password" required/><p class="note bad" id="auth-err"></p><div class="btns" style="margin-top:0"><button class="btn solid" type="submit">Sign in</button></div></form>`;
+  $('page').innerHTML=html;
+}
+
+function renderFlight(){
+  const f=flights.find(x=>x.id===openId);
+  if(!f)return show('list');
+  $('page').innerHTML=`
+    <div class="card flush">
+      <div id="map-box"><div id="map"></div><div id="map-msg">Loading track…</div>
+        <div id="layers" hidden>${Object.keys(LAYERS).map(k=>`<button data-layer="${k}">${LAYERS[k].label}</button>`).join('')}</div></div>
+      <div class="legend"><span class="k">Climb rate, ft/min</span>${VARIO.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>
+    </div>
+    <div class="card" id="chart-card" hidden><h2>Altitude, ft</h2><div id="readout"></div><div id="chart"></div></div>
+    <div class="card"><div class="grid">
+      ${stat('Airtime',fmtDur(f.durationSec))}
+      ${stat('Max altitude',ft(f.maxAlt).toLocaleString()+' ft',signed(ft(f.maxAlt)-ft(f.takeoff.alt))+' ft over launch')}
+      ${stat('Best climb',signed(fpm(f.maxClimb))+' ft/min')}
+      ${stat('Worst sink',signed(fpm(f.maxSink))+' ft/min')}
+      ${stat('Distance flown',fmtMi(f.trackDist))}
+      ${stat('Furthest from launch',fmtMi(f.farDist),'landed '+fmtMi(f.straightDist)+' away')}
+      ${stat('Top ground speed',Math.round(mph(f.maxSpeed))+' mph')}
+      ${stat('Launch → landing',ft(f.takeoff.alt).toLocaleString()+' ft','down to '+ft(f.landing.alt).toLocaleString()+' ft')}
+    </div></div>
+    <div class="card"><div class="fields">
+      <label class="f"><span>Launch</span><input data-field="siteName" value="${esc(f.siteName)}" placeholder="Where you took off"/></label>
+      <label class="f"><span>Wing</span><input data-field="wing" value="${esc(f.wing)}" placeholder="Glider"/></label>
+      <label class="f wide"><span>Notes</span><textarea data-field="notes" placeholder="Conditions, what worked, what to try next time">${esc(f.notes)}</textarea></label>
+    </div>
+    <div class="btns"><button class="btn" id="dl" disabled>Download track file</button><button class="btn plain" id="del">Delete flight</button><span class="fn">${esc(f.fileName)}</span></div></div>`;
+  const id=f.id;
+  loadTrack(id).then(text=>{
+    if(view!=='flight'||openId!==id)return;
+    if(!text){$('map-msg').textContent=session?"This flight's track file is missing. Add the file again to see the map.":"This flight's track isn't on this device. Sign in (Sync) to download it.";return;}
+    rawTrack=text;$('dl').disabled=false;
+    analysis=analyze(parseTrack(text,'x.'+f.format).fixes);
+    $('map-msg').remove();$('layers').hidden=false;$('chart-card').hidden=false;
+    drawMap();drawChart();drawReadout();
+  }).catch(e=>{if(view==='flight'&&openId===id&&$('map-msg'))$('map-msg').textContent=e.message||'Could not load the track.';});
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+const LAYERS={
+  topo:{label:'Topo',url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',max:16,credit:'USGS The National Map'},
+  sat:{label:'Satellite',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',max:18,credit:'© Esri, Maxar, Earthstar'},
+  streets:{label:'Streets',url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',max:19,credit:'© OpenStreetMap'},
+};
+const LAYER_KEY='skylab_flightlayer_v1';
+let layer='topo';try{const k=localStorage.getItem(LAYER_KEY);if(LAYERS[k])layer=k;}catch(e){}
+function setLayer(k){
+  layer=k;try{localStorage.setItem(LAYER_KEY,k);}catch(e){}
+  document.querySelectorAll('#layers button').forEach(b=>b.classList.toggle('on',b.dataset.layer===k));
+  if(!map)return;
+  if(mapTiles)mapTiles.remove();
+  mapTiles=L.tileLayer(LAYERS[k].url,{maxNativeZoom:LAYERS[k].max,maxZoom:19,attribution:LAYERS[k].credit}).addTo(map);
+  mapTiles.bringToBack();
+}
+const pin=(letter,title)=>L.divIcon({className:'',iconSize:[22,22],iconAnchor:[11,11],html:`<div title="${title}" style="width:22px;height:22px;border-radius:11px;background:#0f172a;color:#fff;border:2px solid #fff;font:700 11px/18px system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.4)">${letter}</div>`});
+function drawMap(){
+  if(!window.L){$('map').innerHTML='<div id="map-msg">The map could not load. Check your connection.</div>';return;}
+  const {fixes,vario}=analysis;
+  map=L.map('map',{preferCanvas:true,zoomControl:false});
+  map.attributionControl.setPrefix(false);
+  // Enough points to keep every turn of a thermal, few enough to stay smooth on a phone.
+  const step=Math.max(1,Math.ceil(fixes.length/6000)),idx=[];
+  for(let i=0;i<fixes.length;i+=step)idx.push(i);
+  if(idx[idx.length-1]!==fixes.length-1)idx.push(fixes.length-1);
+  const pts=idx.map(i=>[fixes[i].lat,fixes[i].lon]);
+  // White casing so the track reads on any terrain, then one run per colour.
+  L.polyline(pts,{color:'#fff',weight:6,opacity:.9,interactive:false}).addTo(map);
+  let run=[pts[0]],b=bucket(vario[idx[0]]);
+  for(let k=1;k<idx.length;k++){
+    const nb=bucket(vario[idx[k]]);
+    run.push(pts[k]);
+    if(nb!==b||k===idx.length-1){L.polyline(run,{color:VARIO[b].color,weight:3,interactive:false}).addTo(map);run=[pts[k]];b=nb;}
+  }
+  L.marker(pts[0],{icon:pin('T','Takeoff'),interactive:false}).addTo(map);
+  L.marker(pts[pts.length-1],{icon:pin('L','Landing'),interactive:false}).addTo(map);
+  map.fitBounds(L.latLngBounds(pts),{padding:[24,24]});
+  // Tap the map to jump to the nearest moment of the flight.
+  map.on('click',e=>{
+    const p={lat:e.latlng.lat,lon:e.latlng.lng};let best=0,bd=Infinity;
+    for(const i of idx){const d=dist(p,fixes[i]);if(d<bd){bd=d;best=i;}}
+    setCursor(best);
+  });
+  setLayer(layer);
+}
+function setCursor(i){
+  cursor=i;drawReadout();drawChart();
+  if(!map||!analysis)return;
+  const f=analysis.fixes[i],ll=[f.lat,f.lon];
+  if(!mapDot)mapDot=L.circleMarker(ll,{radius:7,color:'#fff',weight:3,fillColor:'#0f172a',fillOpacity:1,interactive:false}).addTo(map);
+  else mapDot.setLatLng(ll);
+  if(!map.getBounds().pad(-0.05).contains(ll))map.panTo(ll,{animate:false});
+}
+
+// ── Altitude profile ──────────────────────────────────────────────────────────
+function drawReadout(){
+  if(cursor===null){$('readout').innerHTML='<div class="hint">Drag across the chart, or tap the track, to replay the flight.</div>';return;}
+  const f=analysis.fixes[cursor];
+  const cell=(v,l)=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`;
+  $('readout').innerHTML=`<div class="readout">${cell(clock(f.t),fmtDur(Math.round((f.t-analysis.fixes[0].t)/1000))+' in')}${cell(ft(f.alt).toLocaleString()+' ft','altitude')}${cell(signed(fpm(analysis.vario[cursor])),'ft/min')}${cell(Math.round(mph(analysis.speed[cursor]))+' mph','ground speed')}</div>`;
+}
+const CH=170,PAD={l:44,r:10,t:10,b:22};
+function drawChart(){
+  const box=$('chart');if(!box||!analysis)return;
+  const w=Math.round(box.clientWidth);if(!w)return;
+  const {fixes}=analysis,t0=fixes[0].t,t1=fixes[fixes.length-1].t;
+  let lo=Infinity,hi=-Infinity;for(const f of fixes){if(f.alt<lo)lo=f.alt;if(f.alt>hi)hi=f.alt;}
+  // Whole 500 ft on the axis (100 ft for a short sled ride).
+  const unit=ft(hi)-ft(lo)>1500?500:100,loFt=Math.floor(ft(lo)/unit)*unit,hiFt=Math.max(loFt+unit,Math.ceil(ft(hi)/unit)*unit);
+  const pw=Math.max(1,w-PAD.l-PAD.r),ph=CH-PAD.t-PAD.b,base=PAD.t+ph;
+  const x=t=>PAD.l+(t-t0)/((t1-t0)||1)*pw,yf=v=>PAD.t+(1-(v-loFt)/(hiFt-loFt))*ph,y=m=>yf(ft(m));
+  const step=Math.max(1,Math.ceil(fixes.length/700));let d='';
+  for(let i=0;i<fixes.length;i+=step)d+=`${i?'L':'M'}${x(fixes[i].t).toFixed(1)},${y(fixes[i].alt).toFixed(1)}`;
+  const last=fixes[fixes.length-1];d+=`L${x(last.t).toFixed(1)},${y(last.alt).toFixed(1)}`;
+  const accent=getComputedStyle(document.body).getPropertyValue('--accent').trim();
+  let s=`<svg width="${w}" height="${CH}" role="img" aria-label="Altitude over the flight">`;
+  for(const tk of [loFt,(loFt+hiFt)/2,hiFt])s+=`<line x1="${PAD.l}" x2="${w-PAD.r}" y1="${yf(tk)}" y2="${yf(tk)}" stroke="var(--line)"/><text x="${PAD.l-6}" y="${yf(tk)+3.5}" text-anchor="end">${Math.round(tk).toLocaleString()}</text>`;
+  [t0,(t0+t1)/2,t1].forEach((t,i)=>{s+=`<text x="${x(t)}" y="${CH-6}" text-anchor="${['start','middle','end'][i]}">${clock(t)}</text>`;});
+  s+=`<path d="${d}L${x(t1).toFixed(1)},${base}L${PAD.l},${base}Z" fill="${accent}" fill-opacity=".14"/><path d="${d}" fill="none" stroke="${accent}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(cursor!==null){const c=fixes[cursor];s+=`<line x1="${x(c.t)}" x2="${x(c.t)}" y1="${PAD.t}" y2="${base}" stroke="var(--muted)"/><circle cx="${x(c.t)}" cy="${y(c.alt)}" r="5" fill="${accent}" stroke="var(--card)" stroke-width="2"/>`;}
+  box.innerHTML=s+'</svg>';
+  chartSeek=clientX=>{
+    const r=box.getBoundingClientRect(),t=t0+Math.min(1,Math.max(0,(clientX-r.left-PAD.l)/pw))*(t1-t0);
+    let a=0,b=fixes.length-1;while(a<b){const m=(a+b)>>1;if(fixes[m].t<t)a=m+1;else b=m;}
+    if(a!==cursor)setCursor(a);
+  };
+}
+// Scrubbing redraws the chart, so the drag is tracked on the window, not the <svg>.
+let chartSeek=null;
+document.addEventListener('pointerdown',e=>{
+  if(!chartSeek||!e.target.closest||!e.target.closest('#chart'))return;
+  chartSeek(e.clientX);
+  const move=ev=>chartSeek&&chartSeek(ev.clientX);
+  const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);};
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
+});
+window.addEventListener('resize',()=>{if(view==='flight'){drawChart();if(map)map.invalidateSize();}});
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function importFiles(files){
+  if(!files.length||busy)return;
+  busy=true;renderHead();
+  const out=[],added=[];
+  const have=new Map((await dbAll()).map(r=>[r.id,r]));
+  for(const file of files){
+    try{
+      const text=await file.text();
+      const summary=summarize(parseTrack(text,file.name),file.name);
+      const old=have.get(summary.id);
+      if(old&&!old.deleted){
+        // Already logged: keep its notes, but take the file if this device was missing it.
+        if(!old.track){old.track=text;await dbPut(old);}
+        out.push({ok:true,text:`${file.name}: already in your log.`});continue;
+      }
+      const rec={id:summary.id,summary,track:text,dirty:true,deleted:false};
+      await dbPut(rec);have.set(rec.id,rec);added.push(summary);
+    }catch(e){out.push({ok:false,text:`${file.name}: ${e&&e.message||'could not be read.'}`});}
+  }
+  if(added.length)out.unshift({ok:true,text:`Added ${added.length===1?'1 flight':added.length+' flights'}.`});
+  notes=out;busy=false;
+  await reload();
+  // Straight to the map when it was a single new flight.
+  if(added.length===1&&files.length===1)show('flight',added[0].id);else render();
+  syncNow();
+}
+async function saveField(field,value){
+  const rec=await dbGet(openId);
+  if(!rec||(rec.summary[field]||'')===value)return;
+  rec.summary[field]=value;rec.summary.updatedAt=new Date().toISOString();rec.dirty=true;
+  await dbPut(rec);await reload();renderHead();syncNow();
+}
+async function deleteFlight(){
+  if(!confirm('Delete this flight and its track file?'))return;
+  const rec=await dbGet(openId);
+  // Kept as a marker until the cloud copy is removed too, so it doesn't come back.
+  if(rec){rec.deleted=true;rec.track=null;await dbPut(rec);}
+  notes=[];await reload();show('list');syncNow();
+}
+function download(){
+  const f=flights.find(x=>x.id===openId);if(!f||!rawTrack)return;
+  const url=URL.createObjectURL(new Blob([rawTrack],{type:'application/octet-stream'}));
+  const a=document.createElement('a');a.href=url;a.download=f.fileName||`${f.id}.${f.format}`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+$('add-btn').onclick=()=>$('file').click();
+$('file').onchange=e=>{const files=Array.from(e.target.files||[]);e.target.value='';importFiles(files);};
+$('sync-btn').onclick=()=>show('account');
+$('back').onclick=e=>{if(view!=='list'){e.preventDefault();show('list');}};
+$('page').addEventListener('click',e=>{
+  const t=e.target.closest('[data-open],[data-layer],#dl,#del,#sync-now,#sign-out');if(!t)return;
+  if(t.dataset.open){notes=[];show('flight',t.dataset.open);}
+  else if(t.dataset.layer)setLayer(t.dataset.layer);
+  else if(t.id==='dl')download();
+  else if(t.id==='del')deleteFlight();
+  else if(t.id==='sync-now')syncNow();
+  else if(t.id==='sign-out')sb.auth.signOut();
+});
+$('page').addEventListener('focusout',e=>{const f=e.target.dataset&&e.target.dataset.field;if(f&&view==='flight')saveField(f,e.target.value.trim());});
+$('page').addEventListener('submit',async e=>{
+  if(e.target.id!=='sign-in')return;
+  e.preventDefault();
+  const btn=e.target.querySelector('button');btn.disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+  if(error){btn.disabled=false;$('auth-err').textContent=/invalid login/i.test(error.message)?'Wrong email or password.':error.message;}
+});
+// Dropping files onto the page works too (desktop).
+window.addEventListener('dragover',e=>{e.preventDefault();if(view==='list')document.body.classList.add('drop');});
+window.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('drop');});
+window.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('drop');if(view==='list')importFiles(Array.from(e.dataTransfer.files));});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  await reload();render();
+  if(!sb)return;
+  sb.auth.onAuthStateChange((event,s)=>{
+    const was=session;session=s;
+    // Deferred: calling Supabase from inside its own auth callback can lock it up.
+    if(s&&(!was||event==='SIGNED_IN')){if(view==='account')show('list');else renderHead();setTimeout(syncNow,0);}
+    else if(!s&&was){syncState='';render();}
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow();});
+  window.addEventListener('online',()=>syncNow());
+})();
+</script>
+</body>
+</html>
